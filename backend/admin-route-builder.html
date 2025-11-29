@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Swift Transit - Route Builder</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <!-- Leaflet Routing Machine CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"
+    />
+
+    <!-- Optional: Leaflet Control Geocoder CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
+    />
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+      }
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+      #controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        max-width: 300px;
+      }
+      input,
+      button {
+        width: 100%;
+        margin-bottom: 10px;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      #output {
+        width: 100%;
+        height: 150px;
+        font-family: monospace;
+        font-size: 12px;
+        display: none;
+      }
+      .instruction {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <div id="controls">
+      <h3>Route Builder</h3>
+      <div class="instruction">
+        ▶ Click on map: 1st = start, 2nd = end, more = intermediate stops.<br />
+        ▶ Drag blue line to adjust route.<br />
+        ▶ Click markers to rename stops.<br />
+        ▶ Export = GeoJSON (stops snapped to route line).<br /><br />
+        Optional: paste a Mapbox token to use Mapbox routing instead of OSRM.
+      </div>
+      <input
+        type="text"
+        id="mapboxToken"
+        placeholder="Mapbox Access Token (pk....)"
+        value=""
+      />
+      <input
+        type="text"
+        id="routeName"
+        placeholder="Route Name (e.g., Bus 101)"
+        value="New Route"
+      />
+      <button onclick="exportRoute()">Export JSON</button>
+      <textarea id="output"></textarea>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Leaflet Routing Machine JS -->
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+    <!-- Optional: Leaflet Control Geocoder JS -->
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+    <script>
+      // Initialize Map (Default to Dhaka, Bangladesh)
+      var map = L.map("map").setView([23.8103, 90.4125], 13);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors",
+      }).addTo(map);
+
+      var control = null;
+      // We keep our own clean array of waypoints here
+      var clickWaypoints = [];
+
+      function createMarker(i, wp, nWps) {
+        var marker = L.marker(wp.latLng, { draggable: true });
+
+        if (!wp.name) {
+          wp.name = "Stop " + (i + 1);
+        }
+
+        marker.bindPopup(function () {
+          var container = L.DomUtil.create("div");
+          var input = L.DomUtil.create("input", "", container);
+          input.type = "text";
+          input.value = wp.name;
+          input.placeholder = "Stop Name";
+
+          var saveBtn = L.DomUtil.create("button", "", container);
+          saveBtn.innerHTML = "Save Name";
+          saveBtn.onclick = function () {
+            wp.name = input.value;
+            marker.closePopup();
+          };
+          return container;
+        });
+
+        return marker;
+      }
+
+      /**
+       * Initialize the routing control.
+       * If a Mapbox token is provided, use Mapbox Directions.
+       * Otherwise, use OSRM demo server.
+       */
+      function initRouting(token) {
+        if (control) {
+          map.removeControl(control);
+        }
+
+        // reset our local waypoint cache whenever router changes
+        clickWaypoints = [];
+
+        var router;
+        if (token && token.trim() !== "") {
+          console.log("Using Mapbox router");
+          router = L.Routing.mapbox(token.trim());
+        } else {
+          console.log("Using OSRM router");
+          router = L.Routing.osrmv1({
+            serviceUrl: "https://router.project-osrm.org/route/v1",
+          });
+        }
+
+        control = L.Routing.control({
+          waypoints: [],
+          router: router,
+          routeWhileDragging: true,
+          show: false, // Hide default itinerary
+          geocoder: L.Control.Geocoder
+            ? L.Control.Geocoder.nominatim()
+            : null,
+          createMarker: createMarker,
+        })
+          .on("routesfound", function (e) {
+            console.log("Route found. Summary:", e.routes[0].summary);
+          })
+          .on("routingerror", function (e) {
+            console.error("Routing error:", e);
+            alert(
+              "Routing error.\nCheck DevTools console/network.\nIf using Mapbox, ensure the token has Directions enabled."
+            );
+          })
+          .addTo(map);
+      }
+
+      // Initialize routing with OSRM by default
+      var tokenInput = document.getElementById("mapboxToken");
+      initRouting(tokenInput.value);
+
+      // Reinitialize routing when token changes
+      tokenInput.addEventListener("input", function (e) {
+        initRouting(e.target.value);
+      });
+
+      // CLICK-TO-ADD WAYPOINTS (using our own contiguous array)
+      map.on("click", function (e) {
+        if (!control) return;
+
+        clickWaypoints.push(e.latlng);
+        console.log("Added waypoint:", e.latlng, "Total:", clickWaypoints.length);
+
+        control.setWaypoints(clickWaypoints);
+      });
+
+      /**
+       * Export route as GeoJSON:
+       * - One LineString feature for the route
+       * - One Point feature per stop, snapped to the line using waypointIndices
+       */
+      function exportRoute() {
+        if (!control || !control._routes || control._routes.length === 0) {
+          alert("No route found. Add at least two points and wait for routing.");
+          return;
+        }
+
+        var routeName =
+          document.getElementById("routeName").value || "New Route";
+        var route = control._routes[0];
+
+        if (!route.coordinates || route.coordinates.length === 0) {
+          alert("Route has no coordinates yet.");
+          return;
+        }
+
+        var coordinates = route.coordinates.map(function (c) {
+          return [c.lng, c.lat]; // GeoJSON [lon, lat]
+        });
+
+        var waypointIndices = route.waypointIndices || [];
+        var waypoints = control.getWaypoints() || [];
+        var validWaypoints = waypoints.filter(function (wp) {
+          return wp && wp.latLng;
+        });
+
+        var geojson = {
+          name: routeName,
+          type: "FeatureCollection",
+          features: [],
+        };
+
+        // LineString feature
+        geojson.features.push({
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: coordinates,
+          },
+          properties: {
+            type: "route",
+          },
+        });
+
+        // Stops snapped to the route
+        validWaypoints.forEach(function (wp, index) {
+          var coordIndex = waypointIndices[index];
+          var snappedCoord = coordinates[coordIndex];
+
+          if (!snappedCoord) {
+            // Fallback: original marker position
+            snappedCoord = [wp.latLng.lng, wp.latLng.lat];
+          }
+
+          geojson.features.push({
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: snappedCoord,
+            },
+            properties: {
+              Name: wp.name || "Stop " + (index + 1),
+              order: index + 1,
+            },
+          });
+        });
+
+        var output = document.getElementById("output");
+        output.style.display = "block";
+        output.value = JSON.stringify(geojson, null, 2);
+        output.select();
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard
+            .writeText(output.value)
+            .then(function () {
+              alert(
+                "JSON copied to clipboard.\nStops are snapped onto the route LineString."
+              );
+            })
+            .catch(function (err) {
+              console.warn("Clipboard write failed:", err);
+            });
+        }
+      }
+    </script>
+  </body>
+</html>

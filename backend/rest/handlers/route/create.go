@@ -1,0 +1,104 @@
+package route
+
+import (
+	"encoding/json"
+	"fmt"
+	"math"
+	"net/http"
+	"swift_transit/domain"
+)
+
+type Property struct {
+	Name string `json:"Name"`
+}
+
+type Geometry struct {
+	Type        string      `json:"type"`
+	Coordinates interface{} `json:"coordinates"` // Handle both types with an interface{}
+}
+
+type Feature struct {
+	Type       string   `json:"type"`
+	Properties Property `json:"properties"`
+	Geom       Geometry `json:"geometry"`
+}
+
+type Geojson struct {
+	Name     string    `json:"name"`
+	Type     string    `json:"type"`
+	Features []Feature `json:"features"`
+}
+
+// Handle incoming request and unmarshal JSON
+func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
+
+	// Read the body
+	// body, err := io.ReadAll(r.Body)
+	// if err != nil {
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	json.NewEncoder(w).Encode(map[string]string{
+	// 		"Message": "Failed to read body",
+	// 	})
+	// 	return
+	// }
+
+	// Unmarshal the raw JSON body into a Geojson object
+	var jsonData Geojson
+	if err := json.NewDecoder(r.Body).Decode(&jsonData); err != nil {
+		h.utilHandler.SendError(w, "Invalid JSON payload", http.StatusBadRequest)
+		return
+	}
+
+	// Extract LineString geometry
+	var lineStringGeometry Geometry
+	for _, feature := range jsonData.Features {
+		if feature.Geom.Type == "LineString" {
+			lineStringGeometry = feature.Geom
+			break
+		}
+	}
+
+	// Marshal the LineString geometry to store as LineStringGeoJSON
+	lineStringGeoJSON, err := json.Marshal(lineStringGeometry)
+	// fmt.Println(lineStringGeometry)
+	if err != nil {
+		h.utilHandler.SendError(w, "Failed to marshal LineString GeoJSON", http.StatusInternalServerError)
+		return
+	}
+
+	stoppages := []domain.Stop{}
+	for index, feature := range jsonData.Features {
+		if feature.Geom.Type == "Point" {
+			if coords, ok := feature.Geom.Coordinates.([]interface{}); ok {
+				lat := math.Round(coords[1].(float64)*100000) / 100000
+				lon := math.Round(coords[0].(float64)*100000) / 100000
+				stoppages = append(stoppages, domain.Stop{
+					Name:  feature.Properties.Name,
+					Order: index,
+					Lon:   lon,
+					Lat:   lat,
+				})
+			}
+		}
+	}
+
+	var ls domain.LineString
+	if err := json.Unmarshal(lineStringGeoJSON, &ls); err != nil {
+		h.utilHandler.SendError(w, "Failed to unmarshal LineString", http.StatusInternalServerError)
+		return
+	}
+
+	route := domain.Route{
+		Name:              jsonData.Name,
+		LineStringGeoJSON: &ls,
+		Stops:             stoppages,
+	}
+
+	createdRoute, err := h.svc.Create(route)
+	if err != nil {
+		h.utilHandler.SendError(w, fmt.Sprintf("Failed to create route: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	h.utilHandler.SendData(w, createdRoute, http.StatusOK)
+}
