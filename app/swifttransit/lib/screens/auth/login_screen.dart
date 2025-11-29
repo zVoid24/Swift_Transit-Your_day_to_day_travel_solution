@@ -23,6 +23,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
 
   @override
+  void dispose() {
+    phoneController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
 
@@ -138,9 +145,39 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.pushReplacementNamed(context, '/dashboard');
-                  },
+                  onPressed: auth.isLoading
+                      ? null
+                      : () async {
+                          final mobile = phoneController.text.trim();
+                          final password = passwordController.text;
+
+                          if (mobile.isEmpty || password.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  "Please enter both mobile number and password",
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          final success =
+                              await auth.login(mobile, password);
+                          if (!mounted) return;
+
+                          if (success) {
+                            Navigator.pushReplacementNamed(
+                                context, '/dashboard');
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content:
+                                    Text("Login failed. Please try again."),
+                              ),
+                            );
+                          }
+                        },
 
                   child: auth.isLoading
                       ? const CircularProgressIndicator(color: Colors.white)

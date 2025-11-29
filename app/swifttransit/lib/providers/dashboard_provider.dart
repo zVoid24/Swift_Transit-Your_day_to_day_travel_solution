@@ -170,13 +170,19 @@ class DashboardProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final jwt = prefs.getString('jwt');
     final userStr = prefs.getString('user');
-    if (jwt == null || userStr == null) return;
+    if (jwt == null || userStr == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please log in again to buy a ticket."),
+        ),
+      );
+      return;
+    }
 
     final user = jsonDecode(userStr);
     final userId = user['id'];
 
     try {
-      print("akasdfjlaskdfjsad");
       final response = await http.post(
         Uri.parse('${AppConstants.baseUrl}/ticket/buy'),
         headers: {
