@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"swift_transit/infra/payment"
 	"swift_transit/infra/rabbitmq"
 	"swift_transit/user"
@@ -125,6 +126,43 @@ func (s *service) GetTicketStatus(trackingID string) (*BuyTicketResponse, error)
 		PaymentURL: val,
 		Message:    "Ready",
 	}, nil
+}
+
+func (s *service) ValidatePayment(valID string, tranID string, amount float64) (bool, error) {
+	// 1. Call SSLCommerz Validation API
+	resp, err := s.sslCommerz.ValidateTransaction(valID)
+	if err != nil {
+		return false, fmt.Errorf("validation api failed: %w", err)
+	}
+
+	// 2. Check status
+	if resp.Status != "VALID" && resp.Status != "VALIDATED" {
+		return false, fmt.Errorf("invalid transaction status: %s", resp.Status)
+	}
+
+	// 3. Verify Amount (Parse string to float)
+	respAmount, err := strconv.ParseFloat(resp.Amount, 64)
+	if err != nil {
+		return false, fmt.Errorf("invalid amount format from api: %w", err)
+	}
+
+	if respAmount != amount {
+		return false, fmt.Errorf("amount mismatch: expected %.2f, got %.2f", amount, respAmount)
+	}
+
+	// 4. Update Payment Status in DB
+	// Extract Ticket ID from tranID (Format: TICKET-{ID}-{UUID})
+	var ticketID int64
+	_, err = fmt.Sscanf(tranID, "TICKET-%d-", &ticketID)
+	if err != nil {
+		return false, fmt.Errorf("failed to extract ticket id from tran_id: %w", err)
+	}
+
+	if err := s.UpdatePaymentStatus(ticketID); err != nil {
+		return false, fmt.Errorf("failed to update payment status in db: %w", err)
+	}
+
+	return true, nil
 }
 
 func (s *service) UpdatePaymentStatus(id int64) error {

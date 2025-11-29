@@ -12,8 +12,8 @@ type Service interface {
 
 // UserRepo interface
 type UserRepo interface {
-	Find(userName, password string) (*domain.User, error) // login
-	Create(user domain.User) (*domain.User, error)        // create new user
+	Find(mobile, password string) (*domain.User, error) // login
+	Create(user domain.User) (*domain.User, error)      // create new user
 	Info(ctx context.Context) (*domain.User, error)
 	DeductBalance(id int64, amount float64) error
 }

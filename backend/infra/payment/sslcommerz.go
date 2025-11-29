@@ -68,3 +68,65 @@ func (s *SSLCommerz) InitPayment(amount float64, tranID, successUrl, failUrl, ca
 
 	return result.Gateway, nil
 }
+
+type ValidationResponse struct {
+	Status          string `json:"status"`
+	TranDate        string `json:"tran_date"`
+	TranID          string `json:"tran_id"`
+	ValID           string `json:"val_id"`
+	Amount          string `json:"amount"`
+	StoreAmount     string `json:"store_amount"`
+	Currency        string `json:"currency"`
+	BankTranID      string `json:"bank_tran_id"`
+	CardType        string `json:"card_type"`
+	CardNo          string `json:"card_no"`
+	CardIssuer      string `json:"card_issuer"`
+	CardBrand       string `json:"card_brand"`
+	CardIssuerCountry string `json:"card_issuer_country"`
+	CardIssuerCountryCode string `json:"card_issuer_country_code"`
+	CurrencyType    string `json:"currency_type"`
+	CurrencyAmount  string `json:"currency_amount"`
+	CurrencyRate    string `json:"currency_rate"`
+	BaseFair        string `json:"base_fair"`
+	ValueA          string `json:"value_a"`
+	ValueB          string `json:"value_b"`
+	ValueC          string `json:"value_c"`
+	ValueD          string `json:"value_d"`
+	RiskTitle       string `json:"risk_title"`
+	RiskLevel       string `json:"risk_level"`
+	APIConnect      string `json:"APIConnect"`
+	ValidatedOn     string `json:"validated_on"`
+	GwVersion       string `json:"gw_version"`
+}
+
+func (s *SSLCommerz) ValidateTransaction(valID string) (*ValidationResponse, error) {
+	apiUrl := "https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php"
+	if !s.Config.IsSandbox {
+		apiUrl = "https://securepay.sslcommerz.com/validator/api/validationserverAPI.php"
+	}
+
+	u, err := url.Parse(apiUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	q := u.Query()
+	q.Set("val_id", valID)
+	q.Set("store_id", s.Config.StoreID)
+	q.Set("store_passwd", s.Config.StorePass)
+	q.Set("format", "json")
+	u.RawQuery = q.Encode()
+
+	resp, err := http.Get(u.String())
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result ValidationResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}

@@ -9,7 +9,8 @@ import (
 
 type RegisterRequest struct {
 	Name      string  `json:"name"`
-	UserName  string  `json:"username"`
+	Mobile    string  `json:"mobile"`
+	NID       string  `json:"nid"`
 	Email     string  `json:"email"`
 	Password  string  `json:"password"`
 	IsStudent bool    `json:"is_student"`
@@ -33,7 +34,8 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	// Create the user struct
 	user := domain.User{
 		Name:      req.Name,
-		UserName:  req.UserName,
+		Mobile:    req.Mobile,
+		NID:       req.NID,
 		Email:     req.Email,
 		Password:  req.Password,
 		IsStudent: req.IsStudent,
@@ -51,7 +53,8 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	resp := map[string]interface{}{
 		"id":         createdUser.Id,
 		"name":       createdUser.Name,
-		"username":   createdUser.UserName,
+		"mobile":     createdUser.Mobile,
+		"nid":        createdUser.NID,
 		"email":      createdUser.Email,
 		"is_student": createdUser.IsStudent,
 		"balance":    createdUser.Balance,

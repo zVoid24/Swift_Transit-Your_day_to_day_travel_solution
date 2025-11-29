@@ -36,6 +36,7 @@ type Service interface {
 	UpdatePaymentStatus(id int64) error
 	DownloadTicket(id int64) ([]byte, error)
 	GetTicketStatus(trackingID string) (*BuyTicketResponse, error)
+	ValidatePayment(valID string, tranID string, amount float64) (bool, error)
 }
 
 type TicketRepo interface {

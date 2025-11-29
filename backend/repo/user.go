@@ -44,7 +44,8 @@ func (r *userRepo) Info(ctx context.Context) (*domain.User, error) {
 	user := &domain.User{
 		Id:        int64(dataMap["id"].(float64)), // JSON numbers become float64
 		Name:      dataMap["name"].(string),
-		UserName:  dataMap["username"].(string),
+		Mobile:    dataMap["mobile"].(string),
+		NID:       dataMap["nid"].(string),
 		Email:     dataMap["email"].(string),
 		IsStudent: dataMap["is_student"].(bool),
 		Balance:   float32(dataMap["balance"].(float64)), // convert float64 → float32
@@ -62,9 +63,9 @@ func (r *userRepo) Create(user domain.User) (*domain.User, error) {
 	}
 
 	query := `
-		INSERT INTO users (name, username, email, password, is_student, balance)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, name, username, email, is_student, balance
+		INSERT INTO users (name, mobile, nid, email, password, is_student, balance)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, name, mobile, nid, email, is_student, balance
 	`
 
 	createdUser := domain.User{}
@@ -72,7 +73,8 @@ func (r *userRepo) Create(user domain.User) (*domain.User, error) {
 		&createdUser,
 		query,
 		user.Name,
-		user.UserName,
+		user.Mobile,
+		user.NID,
 		user.Email,
 		string(hashedPassword),
 		user.IsStudent,
@@ -85,12 +87,12 @@ func (r *userRepo) Create(user domain.User) (*domain.User, error) {
 	return &createdUser, nil
 }
 
-// Find user by username and verify password (login)
-func (r *userRepo) Find(userName, password string) (*domain.User, error) {
+// Find user by mobile and verify password (login)
+func (r *userRepo) Find(mobile, password string) (*domain.User, error) {
 	user := domain.User{}
-	query := `SELECT id, name, username, email, password, is_student, balance FROM users WHERE username=$1`
+	query := `SELECT id, name, mobile, nid, email, password, is_student, balance FROM users WHERE mobile=$1`
 
-	err := r.dbCon.Get(&user, query, userName)
+	err := r.dbCon.Get(&user, query, mobile)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}

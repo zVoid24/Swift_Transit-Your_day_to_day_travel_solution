@@ -6,7 +6,7 @@ import (
 )
 
 type LoginRequest struct {
-	UserName string `json:"username"`
+	Mobile   string `json:"mobile"`
 	Password string `json:"password"`
 }
 
@@ -30,14 +30,14 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate input
-	if req.UserName == "" || req.Password == "" {
+	if req.Mobile == "" || req.Password == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(LoginResponse{Message: "Username and password required"})
+		json.NewEncoder(w).Encode(LoginResponse{Message: "Mobile number and password required"})
 		return
 	}
 
 	// Check credentials
-	user, err := h.svc.Find(req.UserName, req.Password)
+	user, err := h.svc.Find(req.Mobile, req.Password)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(LoginResponse{Message: "Invalid username or password"})

@@ -36,8 +36,8 @@ func (svc *service) Create(user domain.User) (*domain.User, error) {
 	}
 	return usr, nil
 }
-func (svc *service) Find(username string, password string) (*domain.User, error) {
-	usr, err := svc.userRepo.Find(username, password)
+func (svc *service) Find(mobile string, password string) (*domain.User, error) {
+	usr, err := svc.userRepo.Find(mobile, password)
 	if err != nil {
 		return nil, err
 	}
