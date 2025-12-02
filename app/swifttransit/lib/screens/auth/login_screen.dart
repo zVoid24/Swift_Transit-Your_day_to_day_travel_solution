@@ -136,61 +136,30 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 60),
 
               SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: auth.isLoading
-                      ? null
-                      : () async {
-                          final mobile = phoneController.text.trim();
-                          final password = passwordController.text;
+  width: double.infinity,
+  height: 54,
+  child: ElevatedButton(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: AppColors.primary,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+    ),
+    onPressed: () {
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    },
 
-                          if (mobile.isEmpty || password.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  "Please enter both mobile number and password",
-                                ),
-                              ),
-                            );
-                            return;
-                          }
+    child: Text(
+      "Log In",
+      style: GoogleFonts.poppins(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+        fontSize: 16,
+      ),
+    ),
+  ),
+),
 
-                          final success =
-                              await auth.login(mobile, password);
-                          if (!mounted) return;
-
-                          if (success) {
-                            Navigator.pushReplacementNamed(
-                                context, '/dashboard');
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content:
-                                    Text("Login failed. Please try again."),
-                              ),
-                            );
-                          }
-                        },
-
-                  child: auth.isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          "Log In",
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                ),
-              ),
 
               const SizedBox(height: 20),
 
