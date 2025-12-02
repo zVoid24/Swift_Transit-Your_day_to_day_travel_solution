@@ -96,10 +96,12 @@ func (r *userRepo) Find(mobile, password string) (*domain.User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
+	fmt.Printf("Login attempt for mobile %s. Found user with email: %s\n", mobile, user.Email)
 
 	// Compare password with hash
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
+		fmt.Printf("Login failed for mobile %s: %v. Stored hash len: %d\n", mobile, err, len(user.Password))
 		return nil, fmt.Errorf("invalid password")
 	}
 
@@ -132,4 +134,38 @@ func (r *userRepo) DeductBalance(id int64, amount float64) error {
 	}
 
 	return tx.Commit()
+}
+
+func (r *userRepo) UpdatePassword(email, newPassword string) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Updating password for %s. Hash length: %d\n", email, len(hashedPassword))
+
+	query := `UPDATE users SET password = $1 WHERE email = $2`
+	res, err := r.dbCon.Exec(query, string(hashedPassword), email)
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("no user found with email %s", email)
+	}
+	return nil
+}
+
+func (r *userRepo) FindByEmail(email string) (*domain.User, error) {
+	user := domain.User{}
+	query := `SELECT id, name, mobile, nid, email, password, is_student, balance FROM users WHERE email=$1`
+
+	err := r.dbCon.Get(&user, query, email)
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+	return &user, nil
 }

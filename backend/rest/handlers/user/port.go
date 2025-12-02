@@ -10,4 +10,6 @@ type Service interface {
 	Create(user domain.User) (*domain.User, error)
 	Info(ctx context.Context) (*domain.User, error)
 	DeductBalance(id int64, amount float64) error
+	UpdatePassword(email, newPassword string) error
+	FindByEmail(email string) (*domain.User, error)
 }

@@ -78,7 +78,7 @@ func Start() {
 	ticketWorker := ticket.NewTicketWorker(ticketSvc, rabbitMQ)
 	go ticketWorker.Start()
 
-	userHandler := userHandler.NewHandler(usrSvc, middlewareHandler, mngr, utilHandler)
+	userHandler := userHandler.NewHandler(usrSvc, middlewareHandler, mngr, utilHandler, redisCon)
 	routeHandler := routeHandler.NewHandler(routeSvc, middlewareHandler, mngr, utilHandler)
 	busHandler := busHandler.NewHandler(busSvc, middlewareHandler, mngr, utilHandler)
 	ticketHandler := ticketHandler.NewHandler(ticketSvc, middlewareHandler, mngr, utilHandler)
