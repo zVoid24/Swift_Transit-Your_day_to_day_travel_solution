@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -10,7 +9,6 @@ import '../../providers/dashboard_provider.dart';
 import '../profile/profile_screen.dart';
 import '../search/search_screen.dart';
 
-// Primary color per your design
 const double _kCorner = 16.0;
 
 class DashboardScreen extends StatelessWidget {
@@ -23,13 +21,11 @@ class DashboardScreen extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            // Scrollable content
             _DashboardContent(),
-            // Fixed ad bar + bottom nav are placed at bottom using Positioned
             Positioned(
               left: 0,
               right: 0,
-              bottom: 72, // room for bottom nav
+              bottom: 72,
               child: _FixedAdBar(),
             ),
             Positioned(
@@ -50,7 +46,6 @@ class _DashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Provide bottom padding so last list item isn't hidden behind ad/nav
     return Padding(
       padding: const EdgeInsets.only(bottom: 144.0),
       child: SingleChildScrollView(
@@ -101,60 +96,70 @@ class _TopHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    // Logo + Title row, then greeting underneath
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Placeholder logo circle
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(
-            child: Text(
-              'B',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
+        Row(
+          children: [
+            // Bus logo box (using default Icons.bus_alert as placeholder)
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Center(
+                child: Icon(Icons.directions_bus, color: AppColors.primary, size: 28),
               ),
             ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Hey, Good Morning!',
-                style: TextStyle(color: Colors.black54, fontSize: 14),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Swift Transit',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Your everyday travel companion',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 4),
-              Text(
-                'Welcome to Swift Transit!',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+            ),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
+              child: const Icon(Icons.notifications_none, color: Colors.black54),
+            ),
+          ],
         ),
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 6,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const Icon(Icons.notifications_none, color: Colors.black54),
-        ),
+        const SizedBox(height: 12),
+        // Greeting line below
+        
       ],
     );
   }
@@ -163,61 +168,147 @@ class _TopHeader extends StatelessWidget {
 class _BalanceCard extends StatelessWidget {
   const _BalanceCard({Key? key}) : super(key: key);
 
+  void _showSnack(BuildContext context, String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _handleRefresh(BuildContext context) async {
+    final dashboardProvider = Provider.of<DashboardProvider>(context, listen: false);
+    try {
+      final result = await dashboardProvider.refreshBalance();
+      if (result == null || result == true) {
+        _showSnack(context, 'Balance refreshed');
+      } else {
+        _showSnack(context, 'Failed to refresh balance');
+      }
+    } catch (e) {
+      _showSnack(context, 'Error refreshing balance');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Modern minimal card: balance left, recharge & refresh right, points below with arrow
     return Container(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(_kCorner),
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 6)),
+          // minimal subtle shadow
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: Offset(0, 6)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // top row: balance + actions
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // balance
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text('Balance', style: TextStyle(color: Colors.black54)),
-                    SizedBox(height: 6),
-                    Text('BDT 0', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  children: [
+                    Text('Balance', style: TextStyle(color: Colors.black54, fontSize: 13)),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text('BDT', style: TextStyle(color: Colors.black54, fontSize: 14)),
+                        const SizedBox(width: 8),
+                        Text('0', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              Column(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.add, color: Colors.white),
+
+              // Recharge button (primary)
+              ElevatedButton.icon(
+                onPressed: () {
+                  // simulate recharge flow
+                  _showSnack(context, 'Recharge tapped (static)');
+                },
+                icon: Icon(Icons.account_balance_wallet_rounded, size: 18, color: Colors.white),
+                label: Text('Recharge', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              // Refresh button (round) - wired to provider
+              InkWell(
+                onTap: () async {
+                  await _handleRefresh(context);
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(height: 6),
-                  const Text('Top Up', style: TextStyle(color: Colors.black54)),
-                ],
+                  child: Icon(Icons.refresh, color: AppColors.primary, size: 20),
+                ),
               ),
             ],
           ),
+
           const SizedBox(height: 12),
-          const Divider(height: 1),
+
+          // separator line (subtle)
+          Divider(height: 1, color: Colors.grey.shade100),
+
           const SizedBox(height: 12),
-          Row(
-            children: const [
-              Icon(Icons.bolt, size: 20, color: Colors.amber),
-              SizedBox(width: 8),
-              Text('Swift points', style: TextStyle(color: Colors.black54)),
-              SizedBox(width: 8),
-              Text('0', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
+
+          // swift points row with tappable arrow
+          InkWell(
+            onTap: () {
+              _showSnack(context, 'Use Swift points (static)');
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+              child: Row(
+                children: [
+                  // icon + label
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.star_rounded, color: AppColors.primary, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text('Swift Points', style: TextStyle(color: Colors.black54, fontSize: 13)),
+                        SizedBox(height: 2),
+                        Text('0', style: TextStyle(fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ),
+
+                  // arrow indicator
+                  Row(
+                    children: [
+                      Text('Use Swift Points', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      Icon(Icons.arrow_forward_ios, size: 14, color: Colors.black26),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -231,12 +322,7 @@ class _ProfileUpdateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_kCorner),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4))],
-      ),
+
     );
   }
 }
@@ -270,8 +356,8 @@ class _ServiceSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _tile('Find Bus', Icons.directions_bus),
-        _tile('Scan QR', Icons.qr_code),
+        _tile('Buy Ticket', Icons.confirmation_number),
+        _tile('Track Bus', Icons.track_changes),
       ],
     );
   }
@@ -311,7 +397,6 @@ class _MyTicketCardState extends State<_MyTicketCard> {
             ],
           ),
           const SizedBox(height: 8),
-          // Segmented control (custom)
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
@@ -345,7 +430,6 @@ class _MyTicketCardState extends State<_MyTicketCard> {
             ),
           ),
           const SizedBox(height: 12),
-          // Static content based on selected tab
           if (_selected == 0) ..._sampleTicketsAll(),
           if (_selected == 1) ..._sampleTicketsPrevious(),
           if (_selected == 2) ..._sampleTicketsCancelled(),
@@ -533,7 +617,6 @@ class _AppBottomNav extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // subtle divider
           Container(height: 1, color: Colors.grey.shade100),
           Padding(
             padding: const EdgeInsets.only(top: 8.0, bottom: 8),
