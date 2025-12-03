@@ -1,83 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:lottie/lottie.dart';
-import 'package:flutter/services.dart';
-import 'package:swifttransit/core/colors.dart';
-import 'package:swifttransit/widgets/app_snackbar.dart';
+import 'package:provider/provider.dart';
+
+import '../../../core/colors.dart';
+import '../../../widgets/app_snackbar.dart';
 import '../../../providers/auth_provider.dart';
-import '../../widgets/input_field.dart';
-import '../../widgets/primary_button.dart';
+import '../../../widgets/input_field.dart';
 import 'login_screen.dart';
 import 'otp_verification_screen.dart';
 
-class _CachedLottie extends StatefulWidget {
-  final String asset;
-  final double height;
-  const _CachedLottie({required this.asset, required this.height});
-
-  @override
-  State<_CachedLottie> createState() => _CachedLottieState();
-}
-
-class _CachedLottieState extends State<_CachedLottie> {
-  late final Future<LottieComposition> _compositionFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    // Preload the composition once
-    _compositionFuture = _loadComposition();
-  }
-
-  Future<LottieComposition> _loadComposition() async {
-    return await AssetLottie(widget.asset).load();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // RepaintBoundary prevents unnecessary repaints of the animation
-    return RepaintBoundary(
-      child: FutureBuilder<LottieComposition>(
-        future: _compositionFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done &&
-              snapshot.hasData) {
-            return SizedBox(
-              height: widget.height,
-              child: Lottie(
-                composition: snapshot.data!,
-                fit: BoxFit.contain,
-                // keep animation playing but it won't re-create composition
-              ),
-            );
-          }
-
-          // lightweight placeholder while loading
-          return SizedBox(
-            height: widget.height,
-            child: const Center(child: SizedBox.shrink()),
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// Helper wrapper to load Lottie composition from asset programmatically.
-/// We define this so preloading composition is easy and reused.
-class AssetLottie {
-  final String assetPath;
-  AssetLottie(this.assetPath);
-
-  Future<LottieComposition> load() async {
-    final assetData = await rootBundle.load(assetPath);
-    return await LottieComposition.fromByteData(assetData);
-  }
-}
-
-/// Main SignupScreen
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -86,239 +18,317 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  double? _initialHeight;
+  final _formKey = GlobalKey<FormState>();
+
+  final _nameFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _nidFocus = FocusNode();
+  final _phoneFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  final _confirmFocus = FocusNode();
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Capture initial height once (first real frame). This prevents
-    // layout breakpoints from changing when the keyboard opens.
-    _initialHeight ??= MediaQuery.of(context).size.height;
+  void dispose() {
+    _nameFocus.dispose();
+    _emailFocus.dispose();
+    _nidFocus.dispose();
+    _phoneFocus.dispose();
+    _passwordFocus.dispose();
+    _confirmFocus.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Use listen: false where we only need controllers, preventing rebuilds
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final size = MediaQuery.of(context).size;
-    // Use initial height (fallback to current if not set)
-    final baseHeight = _initialHeight ?? size.height;
-    final isSmallHeight = baseHeight < 700;
+    final maxWidth = size.width > 700 ? 520.0 : double.infinity;
 
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: true, // let Flutter adjust layout
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          child: Center(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
+              constraints: BoxConstraints(maxWidth: maxWidth),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(height: baseHeight * 0.02),
-
-                  // Fixed-height Lottie that uses a cached composition
-                  _CachedLottie(
-                    asset: 'assets/signup.json',
-                    height: isSmallHeight ? 80 : 120,
+                  const SizedBox(height: 8),
+                  CircleAvatar(
+                    radius: 46,
+                    backgroundImage: const AssetImage('assets/stlogo.png'),
+                    backgroundColor: Colors.white,
                   ),
-
-                  SizedBox(height: baseHeight * 0.02),
-
+                  const SizedBox(height: 16),
                   Text(
-                    "Sign Up",
+                    'Sign Up',
                     style: GoogleFonts.poppins(
-                      fontSize: isSmallHeight ? 26 : 32,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 6),
-
                   Text(
-                    "Join Swift Transit and travel smarter",
+                    'Join Swift Transit and travel smarter',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
-                      color: Colors.black,
-                      fontSize: isSmallHeight ? 12 : 14,
+                      fontSize: 13,
+                      color: Colors.black87,
                     ),
                   ),
+                  const SizedBox(height: 18),
 
-                  SizedBox(height: baseHeight * 0.03),
+                  // Form card
+                  Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    elevation: 0,
+                    child: Form(
+                      key: _formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      child: Column(
+                        children: [
+                          AppInputField(
+                            controller: auth.fullName,
+                            icon: HugeIcons.strokeRoundedUserCircle,
+                            hint: 'Full Name (As Per NID)',
+                            focusNode: _nameFocus,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) => _emailFocus.requestFocus(),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty)
+                                return 'Enter full name';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 4),
 
-                  // Input fields. These reference controllers in provider but do not
-                  // cause whole screen rebuilds when provider notifies.
-                  AppInputField(
-                    controller: auth.fullName,
-                    icon: HugeIcons.strokeRoundedUserCircle,
-                    hint: "Full Name (As Per NID)",
-                  ),
+                          AppInputField(
+                            controller: auth.email,
+                            icon: HugeIcons.strokeRoundedMail01,
+                            hint: 'Email Address',
+                            keyboardType: TextInputType.emailAddress,
+                            focusNode: _emailFocus,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) => _nidFocus.requestFocus(),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty)
+                                return 'Enter email';
+                              final regex = RegExp(
+                                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                              );
+                              if (!regex.hasMatch(v.trim()))
+                                return 'Enter valid email';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 4),
 
-                  AppInputField(
-                    controller: auth.email,
-                    icon: HugeIcons.strokeRoundedMail01,
-                    hint: "Email Address",
-                    keyboardType: TextInputType.emailAddress,
-                  ),
+                          AppInputField(
+                            controller: auth.nid,
+                            icon: HugeIcons.strokeRoundedIdentification,
+                            hint: 'NID Number',
+                            keyboardType: TextInputType.number,
+                            focusNode: _nidFocus,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) => _phoneFocus.requestFocus(),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty)
+                                return 'Enter NID';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 4),
 
-                  AppInputField(
-                    controller: auth.nid,
-                    icon: HugeIcons.strokeRoundedIdentification,
-                    hint: "NID Number",
-                    keyboardType: TextInputType.number,
-                  ),
+                          AppInputField(
+                            controller: auth.phone,
+                            icon: HugeIcons.strokeRoundedCall,
+                            hint: 'Contact Number',
+                            keyboardType: TextInputType.phone,
+                            focusNode: _phoneFocus,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) =>
+                                _passwordFocus.requestFocus(),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty)
+                                return 'Enter contact number';
+                              if (v.trim().length < 8)
+                                return 'Enter valid phone';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 4),
 
-                  AppInputField(
-                    controller: auth.phone,
-                    icon: HugeIcons.strokeRoundedCall,
-                    hint: "Contact Number",
-                    keyboardType: TextInputType.phone,
-                    customPrefix: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.network(
-                          "https://flagcdn.com/w40/bd.png",
-                          width: 20,
-                        ),
-                        const SizedBox(width: 6),
-                      ],
-                    ),
-                  ),
+                          AppInputField(
+                            controller: auth.password,
+                            icon: HugeIcons.strokeRoundedLockPassword,
+                            hint: 'Create Password',
+                            isPassword: true,
+                            focusNode: _passwordFocus,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) =>
+                                _confirmFocus.requestFocus(),
+                            validator: (v) {
+                              if (v == null || v.isEmpty)
+                                return 'Enter password';
+                              if (v.length < 6)
+                                return 'Password must be at least 6 characters';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 4),
 
-                  AppInputField(
-                    controller: auth.password,
-                    icon: HugeIcons.strokeRoundedLockPassword,
-                    hint: "Create Password",
-                    isPassword: true,
-                  ),
+                          AppInputField(
+                            controller: auth.confirmPassword,
+                            icon: HugeIcons.strokeRoundedLockPassword,
+                            hint: 'Confirm Password',
+                            isPassword: true,
+                            focusNode: _confirmFocus,
+                            textInputAction: TextInputAction.done,
+                            validator: (v) {
+                              if (v == null || v.isEmpty)
+                                return 'Confirm your password';
+                              if (v != auth.password.text)
+                                return 'Passwords do not match';
+                              return null;
+                            },
+                          ),
 
-                  AppInputField(
-                    controller: auth.confirmPassword,
-                    icon: HugeIcons.strokeRoundedLockPassword,
-                    hint: "Confirm Password",
-                    isPassword: true,
-                  ),
-
-                  //const SizedBox(height: 2),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // We use Consumer only for the agreed checkbox so only that small
-                      // piece rebuilds when toggled.
-                      Consumer<AuthProvider>(
-                        builder: (context, ap, _) => Checkbox(
-                          value: ap.agreed,
-                          onChanged: ap.toggleAgreement,
-                          side: const BorderSide(color: Colors.black),
-                          checkColor: Colors.white,
-                          activeColor: AppColors.primary,
-                        ),
-                      ),
-                      Expanded(
-                        child: RichText(
-                          text: TextSpan(
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.black,
-                            ),
+                          // Agreement
+                          Row(
                             children: [
-                              const TextSpan(text: "I agree to the "),
-                              TextSpan(
-                                text: "Terms & Conditions",
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: const Color(0xFF258BA1),
-                                  decoration: TextDecoration.underline,
+                              Consumer<AuthProvider>(
+                                builder: (context, ap, _) => Checkbox(
+                                  value: ap.agreed,
+                                  onChanged: (val) => ap.toggleAgreement(val),
+                                  activeColor: AppColors.primary,
                                 ),
                               ),
-                              const TextSpan(text: " of Swift Transit."),
+                              Expanded(
+                                child: Text.rich(
+                                  TextSpan(
+                                    text: 'I agree to the ',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.black87,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Terms & Conditions',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primary,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                      const TextSpan(
+                                        text: ' of Swift Transit.',
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-
-                  SizedBox(height: baseHeight * 0.02),
-
-                  // Use Consumer only for button loading state (small rebuild)
-                  Consumer<AuthProvider>(
-                    builder: (context, ap, _) => PrimaryButton(
-                      text: ap.isLoading ? "Loading..." : "Sign Up",
-                      onTap: () async {
-                        if (!ap.isSignupValid()) {
-                          AppSnackBar.error(
-                            context,
-                            "Please fill up all fields correctly and make sure passwords match.",
-                          );
-                          return;
-                        }
-
-                        final ok = await ap.initiateSignup();
-                        if (ok) {
-                          AppSnackBar.success(
-                            context,
-                            "OTP sent to your email!",
-                          );
-                          if (!context.mounted) return;
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  OtpVerificationScreen(email: ap.email.text),
-                            ),
-                          );
-                        } else {
-                          AppSnackBar.error(
-                            context,
-                            "Failed to initiate signup. Try again.",
-                          );
-                        }
-                      },
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
 
+                  Consumer<AuthProvider>(
+                    builder: (context, ap, _) => SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 4,
+                        ),
+                        onPressed: ap.isLoading
+                            ? null
+                            : () async {
+                                if (!_formKey.currentState!.validate()) {
+                                  AppSnackBar.error(
+                                    context,
+                                    'Fix the highlighted errors.',
+                                  );
+                                  return;
+                                }
+                                if (!ap.agreed) {
+                                  AppSnackBar.warning(
+                                    context,
+                                    'Please accept Terms & Conditions.',
+                                  );
+                                  return;
+                                }
+
+                                final ok = await ap.initiateSignup();
+                                if (ok) {
+                                  AppSnackBar.success(
+                                    context,
+                                    'OTP sent to your email!',
+                                  );
+                                  if (!context.mounted) return;
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => OtpVerificationScreen(
+                                        email: ap.email.text,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  AppSnackBar.error(
+                                    context,
+                                    'Failed to initiate signup. Try again.',
+                                  );
+                                }
+                              },
+                        child: ap.isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : Text(
+                                'Sign Up',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Already have an account? ", // ← added space here
-                        style: GoogleFonts.poppins(color: Colors.black),
+                        "Already have an account? ",
+                        style: GoogleFonts.poppins(color: Colors.black87),
                       ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          padding:
-                              EdgeInsets.zero, // removes all default padding
-                          minimumSize:
-                              Size.zero, // allows button to shrink to text size
-                          tapTargetSize: MaterialTapTargetSize
-                              .shrinkWrap, // removes extra tap padding
-                        ),
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LoginScreen(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          "Login",
-                          style: GoogleFonts.poppins(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
+                      GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/login'),
+                    child: Text(
+                      "Login",
+                      style: GoogleFonts.poppins(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
                       ),
+                    ),
+                  ),
                     ],
                   ),
                 ],

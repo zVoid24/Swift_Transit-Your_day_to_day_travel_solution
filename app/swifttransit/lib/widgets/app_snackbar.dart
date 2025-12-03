@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:swifttransit/core/colors.dart';
 
 class AppSnackBar {
   static void success(BuildContext context, String message) {
     _show(
       context,
       message,
-      Colors.green,
+      AppColors.primary,
     );
   }
 
@@ -21,7 +22,7 @@ class AppSnackBar {
     _show(
       context,
       message,
-      Colors.orange,
+      Colors.orangeAccent,
     );
   }
 

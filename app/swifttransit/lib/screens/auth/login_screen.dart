@@ -7,6 +7,8 @@ import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 
 import '../../../providers/auth_provider.dart';
 import '../../../core/colors.dart';
+// import path below — adjust if your file is in a different folder
+import '../../../widgets/app_snackbar.dart'; // <- change path to where app_snacbar.dart actually is
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -149,12 +151,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: auth.isLoading
                         ? null
                         : () async {
+                            // validation
                             if (phoneController.text.isEmpty ||
                                 passwordController.text.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Please fill all fields"),
-                                ),
+                              AppSnackBar.warning(
+                                context,
+                                "Please fill all fields",
                               );
                               return;
                             }
@@ -166,17 +168,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
                             if (success) {
                               if (!context.mounted) return;
+                              AppSnackBar.success(context, "Login successful");
                               Navigator.pushReplacementNamed(
                                 context,
                                 '/dashboard',
                               );
                             } else {
                               if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Invalid credentials"),
-                                ),
-                              );
+                              AppSnackBar.error(context, "Invalid credentials");
                             }
                           },
                     child: auth.isLoading
