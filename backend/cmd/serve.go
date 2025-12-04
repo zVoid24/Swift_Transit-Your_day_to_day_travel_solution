@@ -36,17 +36,6 @@ func Start() {
 		panic(err)
 	}
 	fmt.Println(redisCon)
-	// err = redisCon.Set(ctx, "name", "zahid", 0).Err()
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// 	panic(err)
-	// }
-	// val, err := redisCon.Get(ctx, "name").Result()
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// 	panic(err)
-	// }
-	// fmt.Println(val)
 	dbCon, err := db.NewConnection(&cnf.Db)
 	if err != nil {
 		panic(err)
