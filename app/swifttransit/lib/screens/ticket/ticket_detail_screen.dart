@@ -165,18 +165,22 @@ class TicketDetailScreen extends StatelessWidget {
               width: double.infinity,
               height: 50,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  // Construct download URL - assuming standard endpoint
-                  // In a real app, you might want to store the download URL in the ticket object
-                  // or fetch it from the backend. For now, we'll try to construct it or use a provider method if available.
-                  // Since we don't have the full download URL in the ticket map usually, we might need to fetch it.
-                  // However, the backend endpoint is likely /ticket/download?id=ID
+                onPressed: () async {
                   final downloadUrl =
                       '${AppConstants.baseUrl}/ticket/download?id=$ticketId';
-                  Provider.of<DashboardProvider>(
+                  final success = await Provider.of<DashboardProvider>(
                     context,
                     listen: false,
                   ).downloadTicket(downloadUrl);
+
+                  if (!success && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Could not open download link.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 },
                 icon: const Icon(Icons.download_rounded),
                 label: Text(

@@ -5,6 +5,7 @@ import '../../providers/dashboard_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../profile/profile_screen.dart';
 import '../search/search_screen.dart';
+import 'ticket_detail_screen.dart';
 
 class TicketListScreen extends StatefulWidget {
   const TicketListScreen({super.key});
@@ -23,13 +24,20 @@ class _TicketListScreenState extends State<TicketListScreen> {
   }
 
   Future<void> _refresh() async {
-    await context.read<DashboardProvider>().fetchTickets(page: 1, append: false);
+    await context.read<DashboardProvider>().fetchTickets(
+      page: 1,
+      append: false,
+    );
   }
 
   void _onNavTap(int index) {
     switch (index) {
       case 0:
-        Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/dashboard',
+          (route) => false,
+        );
         break;
       case 1:
         Navigator.pushReplacement(
@@ -51,9 +59,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Tickets'),
-      ),
+      appBar: AppBar(title: const Text('My Tickets')),
       body: Consumer<DashboardProvider>(
         builder: (context, provider, _) {
           if (provider.isLoadingTickets && provider.tickets.isEmpty) {
@@ -77,14 +83,16 @@ class _TicketListScreenState extends State<TicketListScreen> {
                         onPressed: provider.isLoadingMoreTickets
                             ? null
                             : () => provider.fetchTickets(
-                                  page: provider.ticketPage + 1,
-                                  append: true,
-                                ),
+                                page: provider.ticketPage + 1,
+                                append: true,
+                              ),
                         child: provider.isLoadingMoreTickets
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Text('Load more'),
                       ),
@@ -93,7 +101,8 @@ class _TicketListScreenState extends State<TicketListScreen> {
                 }
 
                 final ticket = provider.tickets[index];
-                if (ticket is! Map<String, dynamic>) return const SizedBox.shrink();
+                if (ticket is! Map<String, dynamic>)
+                  return const SizedBox.shrink();
 
                 final status = ticket['paid_status'] == true
                     ? (ticket['checked'] == true ? 'Completed' : 'Upcoming')
@@ -102,11 +111,25 @@ class _TicketListScreenState extends State<TicketListScreen> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   child: ListTile(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TicketDetailScreen(ticket: ticket),
+                        ),
+                      );
+                    },
                     title: Text(
-                        '${ticket['start_destination']} → ${ticket['end_destination']}'),
-                    subtitle: Text('${ticket['created_at']} • ৳${ticket['fare']}'),
+                      '${ticket['start_destination']} → ${ticket['end_destination']}',
+                    ),
+                    subtitle: Text(
+                      '${ticket['created_at']} • ৳${ticket['fare']}',
+                    ),
                     trailing: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(12),
@@ -120,8 +143,10 @@ class _TicketListScreenState extends State<TicketListScreen> {
           );
         },
       ),
-      bottomNavigationBar:
-          AppBottomNav(currentIndex: 2, onItemSelected: _onNavTap),
+      bottomNavigationBar: AppBottomNav(
+        currentIndex: 2,
+        onItemSelected: _onNavTap,
+      ),
     );
   }
 }

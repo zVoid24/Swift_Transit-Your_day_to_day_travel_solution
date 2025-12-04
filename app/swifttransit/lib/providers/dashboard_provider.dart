@@ -510,12 +510,14 @@ class DashboardProvider extends ChangeNotifier {
 
             await fetchUserInfo();
             await fetchTickets();
+            clearSearch();
             return;
           }
 
           await _openGatewayCheckout(context, paymentUrl, ticketId);
           await fetchTickets();
           await fetchUserInfo();
+          clearSearch();
           return;
         }
       } catch (e) {
@@ -550,6 +552,7 @@ class DashboardProvider extends ChangeNotifier {
             // We can try to fetch the ticket status again to get download URL or just rely on user going to ticket list
             fetchTickets();
             fetchUserInfo();
+            clearSearch();
           },
           onFailure: () {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -671,12 +674,29 @@ class DashboardProvider extends ChangeNotifier {
     return [];
   }
 
-  Future<void> downloadTicket(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      debugPrint("Could not launch $url");
+  Future<bool> downloadTicket(String url) async {
+    if (url.isEmpty) {
+      debugPrint("Download URL is empty");
+      return false;
+    }
+
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+      debugPrint("Invalid download URL: $url");
+      return false;
+    }
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return true;
+      } else {
+        debugPrint("Could not launch $url");
+        return false;
+      }
+    } catch (e) {
+      debugPrint("Error launching URL: $e");
+      return false;
     }
   }
 }

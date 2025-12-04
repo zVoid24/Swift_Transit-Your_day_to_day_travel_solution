@@ -29,18 +29,27 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
   void dispose() {
     _departureController.dispose();
     _destinationController.dispose();
-    // Clear search state when leaving the screen
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        Provider.of<DashboardProvider>(context, listen: false).clearSearch();
-      }
-    });
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
+    // Restore state from provider if available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<DashboardProvider>(context, listen: false);
+      if (provider.selectedDeparture != null) {
+        _departureController.text = provider.selectedDeparture!;
+        _showDepartureSuggestions = false;
+      }
+      if (provider.selectedDestination != null) {
+        _destinationController.text = provider.selectedDestination!;
+        _showDestinationSuggestions = false;
+      }
+      if (provider.routePoints.isNotEmpty) {
+        _zoomToRoute(provider.routePoints);
+      }
+    });
   }
 
   void _onSearchChanged(String query, bool isDeparture) async {
@@ -98,185 +107,235 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
   Widget build(BuildContext context) {
     final provider = Provider.of<DashboardProvider>(context);
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Map
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: const LatLng(23.8103, 90.4125), // Dhaka
-              initialZoom: 13.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.swifttransit',
-              ),
-              PolylineLayer(
-                polylines: [
-                  if (provider.routePoints.isNotEmpty)
-                    Polyline(
-                      points: provider.routePoints,
-                      strokeWidth: 4.0,
-                      color: AppColors.primary,
-                    ),
-                ],
-              ),
-              MarkerLayer(markers: provider.markers),
-            ],
-          ),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
 
-          // Back Button
-          Positioned(
-            top: 50,
-            left: 20,
-            child: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
-                onPressed: () => Navigator.pop(context),
+        if (provider.selectedBusIndex != null) {
+          final shouldSave = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(
+                "Save Search?",
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
               ),
+              content: Text(
+                "Do you want to keep your current search and selection?",
+                style: GoogleFonts.poppins(),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(
+                    "No",
+                    style: GoogleFonts.poppins(color: Colors.grey),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(
+                    "Yes",
+                    style: GoogleFonts.poppins(color: AppColors.primary),
+                  ),
+                ),
+              ],
             ),
-          ),
+          );
 
-          // Bottom Sheet
-          DraggableScrollableSheet(
-            initialChildSize: 0.45,
-            minChildSize: 0.2,
-            maxChildSize: 0.85,
-            builder: (context, scrollController) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                    ),
+          if (shouldSave == false) {
+            provider.clearSearch();
+          }
+        } else {
+          provider.clearSearch();
+        }
+
+        if (context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // Map
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: const LatLng(23.8103, 90.4125), // Dhaka
+                initialZoom: 13.0,
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.swifttransit',
+                ),
+                PolylineLayer(
+                  polylines: [
+                    if (provider.routePoints.isNotEmpty)
+                      Polyline(
+                        points: provider.routePoints,
+                        strokeWidth: 4.0,
+                        color: AppColors.primary,
+                      ),
                   ],
                 ),
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(24),
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+                MarkerLayer(markers: provider.markers),
+              ],
+            ),
+
+            // Back Button
+            Positioned(
+              top: 50,
+              left: 20,
+              child: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.black),
+                  onPressed: () => Navigator.maybePop(context),
+                ),
+              ),
+            ),
+
+            // Bottom Sheet
+            DraggableScrollableSheet(
+              initialChildSize: 0.45,
+              minChildSize: 0.2,
+              maxChildSize: 0.85,
+              builder: (context, scrollController) {
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        spreadRadius: 2,
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      "Where do you want to go?",
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Departure Input
-                    _buildInput(
-                      controller: _departureController,
-                      hint: "From (e.g. Gulistan)",
-                      icon: Icons.location_on_outlined,
-                      onChanged: (val) => _onSearchChanged(val, true),
-                    ),
-                    if (_showDepartureSuggestions)
-                      _buildSuggestionsList(_departureSuggestions, true),
-
-                    const SizedBox(height: 16),
-
-                    // Destination Input
-                    _buildInput(
-                      controller: _destinationController,
-                      hint: "To (e.g. Savar)",
-                      icon: Icons.location_on,
-                      onChanged: (val) => _onSearchChanged(val, false),
-                    ),
-                    if (_showDestinationSuggestions)
-                      _buildSuggestionsList(_destinationSuggestions, false),
-
-                    const SizedBox(height: 24),
-
-                    // Search Button
-                    if (provider.currentRouteId == null)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          onPressed: () async {
-                            await provider.searchBus();
-                            if (provider.routePoints.isNotEmpty) {
-                              _zoomToRoute(provider.routePoints);
-                            }
-                          },
-                          child: Text(
-                            "Search Route",
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+                    ],
+                  ),
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
                       ),
+                      const SizedBox(height: 24),
+                      Text(
+                        "Where do you want to go?",
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
 
-                    if (provider.currentRouteId != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: SizedBox(
+                      // Departure Input
+                      _buildInput(
+                        controller: _departureController,
+                        hint: "From (e.g. Gulistan)",
+                        icon: Icons.location_on_outlined,
+                        onChanged: (val) => _onSearchChanged(val, true),
+                      ),
+                      if (_showDepartureSuggestions)
+                        _buildSuggestionsList(_departureSuggestions, true),
+
+                      const SizedBox(height: 16),
+
+                      // Destination Input
+                      _buildInput(
+                        controller: _destinationController,
+                        hint: "To (e.g. Savar)",
+                        icon: Icons.location_on,
+                        onChanged: (val) => _onSearchChanged(val, false),
+                      ),
+                      if (_showDestinationSuggestions)
+                        _buildSuggestionsList(_destinationSuggestions, false),
+
+                      const SizedBox(height: 24),
+
+                      // Search Button
+                      if (provider.currentRouteId == null)
+                        SizedBox(
                           width: double.infinity,
                           height: 54,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              provider.clearSearch();
-                              _departureController.clear();
-                              _destinationController.clear();
-                            },
-                            style: OutlinedButton.styleFrom(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              side: BorderSide(color: AppColors.primary),
                             ),
+                            onPressed: () async {
+                              await provider.searchBus();
+                              if (provider.routePoints.isNotEmpty) {
+                                _zoomToRoute(provider.routePoints);
+                              }
+                            },
                             child: Text(
-                              "Search Again",
+                              "Search Route",
                               style: GoogleFonts.poppins(
-                                color: AppColors.primary,
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
                             ),
                           ),
                         ),
-                      ),
 
-                    const SizedBox(height: 16),
+                      if (provider.currentRouteId != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: OutlinedButton(
+                              onPressed: () {
+                                provider.clearSearch();
+                                _departureController.clear();
+                                _destinationController.clear();
+                              },
+                              style: OutlinedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                side: BorderSide(color: AppColors.primary),
+                              ),
+                              child: Text(
+                                "Search Again",
+                                style: GoogleFonts.poppins(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
 
-                    // Bus Selection & Payment Cards
-                    if (provider.currentRouteId != null ||
-                        provider.availableBuses.isNotEmpty)
-                      _buildSelectionCards(context, provider),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
+                      const SizedBox(height: 16),
+
+                      // Bus Selection & Payment Cards
+                      if (provider.currentRouteId != null ||
+                          provider.availableBuses.isNotEmpty)
+                        _buildSelectionCards(context, provider),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
