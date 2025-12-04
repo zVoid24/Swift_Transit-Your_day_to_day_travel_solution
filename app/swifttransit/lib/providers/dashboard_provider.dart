@@ -353,6 +353,18 @@ class DashboardProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSearch() {
+    selectedDeparture = null;
+    selectedDestination = null;
+    currentRouteId = null;
+    currentBusName = null;
+    selectedBusIndex = null;
+    availableBuses = [];
+    routePoints = [];
+    markers = [];
+    notifyListeners();
+  }
+
   double? get currentFare {
     if (selectedBusIndex == null ||
         selectedBusIndex! >= availableBuses.length) {

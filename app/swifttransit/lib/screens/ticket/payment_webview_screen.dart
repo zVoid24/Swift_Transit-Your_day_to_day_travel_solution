@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants.dart';
 
 class PaymentWebViewScreen extends StatefulWidget {
@@ -43,11 +44,19 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
             final uri = Uri.tryParse(request.url);
             if (uri != null && uri.path.contains('/ticket')) {
               if (uri.path.contains('success')) {
-                _showResult(success: true);
-                return NavigationDecision.prevent;
+                // Allow the page to load so user sees the backend HTML
+                // We can still trigger the success callback in the background or after a delay
+                Future.delayed(const Duration(seconds: 1), () {
+                  widget.onSuccess?.call();
+                });
+                return NavigationDecision.navigate;
               }
               if (uri.path.contains('fail') || uri.path.contains('cancel')) {
-                _showResult(success: false);
+                widget.onFailure?.call();
+                return NavigationDecision.navigate;
+              }
+              if (uri.path.contains('download')) {
+                launchUrl(uri, mode: LaunchMode.externalApplication);
                 return NavigationDecision.prevent;
               }
             }
@@ -121,52 +130,22 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     }
   }
 
-  void _closeResult() {
-    Navigator.of(context).pop(_resultStatus == 'success');
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Complete Payment')),
+      appBar: AppBar(
+        title: const Text('Complete Payment'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
           if (_isLoading) const LinearProgressIndicator(minHeight: 2),
-          if (_resultStatus != null)
-            Container(
-              color: Colors.white,
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _resultStatus == 'success'
-                        ? Icons.check_circle_outline
-                        : Icons.cancel_outlined,
-                    color: _resultStatus == 'success'
-                        ? Colors.green
-                        : Colors.red,
-                    size: 96,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _resultStatus == 'success'
-                        ? 'Payment successful'
-                        : 'Payment failed or cancelled',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _closeResult,
-                    child: const Text('Close'),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );

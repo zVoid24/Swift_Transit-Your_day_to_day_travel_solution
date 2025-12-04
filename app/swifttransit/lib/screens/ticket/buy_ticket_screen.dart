@@ -26,6 +26,19 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
   bool _showDestinationSuggestions = false;
 
   @override
+  void dispose() {
+    _departureController.dispose();
+    _destinationController.dispose();
+    // Clear search state when leaving the screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<DashboardProvider>(context, listen: false).clearSearch();
+      }
+    });
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
   }
@@ -214,6 +227,36 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
                         ),
                       ),
 
+                    if (provider.currentRouteId != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              provider.clearSearch();
+                              _departureController.clear();
+                              _destinationController.clear();
+                            },
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              side: BorderSide(color: AppColors.primary),
+                            ),
+                            child: Text(
+                              "Search Again",
+                              style: GoogleFonts.poppins(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
                     const SizedBox(height: 16),
 
                     // Bus Selection & Payment Cards
@@ -321,7 +364,8 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final bus = buses[index];
-              final stops = (bus['stops'] as List?)
+              final stops =
+                  (bus['stops'] as List?)
                       ?.whereType<Map<String, dynamic>>()
                       .toList() ??
                   [];
@@ -400,10 +444,11 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: (isSelected
-                                            ? AppColors.primary
-                                            : Colors.green)
-                                        .withOpacity(0.12),
+                                    color:
+                                        (isSelected
+                                                ? AppColors.primary
+                                                : Colors.green)
+                                            .withOpacity(0.12),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(

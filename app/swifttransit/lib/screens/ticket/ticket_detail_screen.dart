@@ -18,7 +18,9 @@ class TicketDetailScreen extends StatelessWidget {
         '${ticket['start_destination']} → ${ticket['end_destination']}';
     final fare = ticket['fare'];
     final date = ticket['created_at'];
-    final qrData = 'TICKET-$ticketId'; // Simple QR data
+    final qrData =
+        ticket['qr_code'] ??
+        'TICKET-$ticketId'; // Use actual QR code or fallback
     final qrUrl =
         'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=$qrData';
 
