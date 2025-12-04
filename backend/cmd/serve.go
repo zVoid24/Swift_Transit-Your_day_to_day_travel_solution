@@ -86,7 +86,7 @@ func Start() {
 	userHandler := userHandler.NewHandler(usrSvc, middlewareHandler, mngr, utilHandler, redisCon, ctx, hub)
 	routeHandler := routeHandler.NewHandler(routeSvc, middlewareHandler, mngr, utilHandler)
 	busHandler := busHandler.NewHandler(busSvc, middlewareHandler, mngr, utilHandler, hub)
-	ticketHandler := ticketHandler.NewHandler(ticketSvc, middlewareHandler, mngr, utilHandler)
+	ticketHandler := ticketHandler.NewHandler(ticketSvc, middlewareHandler, mngr, utilHandler, cnf.PublicBaseURL)
 	handler := rest.NewHandler(cnf, middlewareHandler, userHandler, routeHandler, busHandler, ticketHandler)
 	handler.Serve()
 }

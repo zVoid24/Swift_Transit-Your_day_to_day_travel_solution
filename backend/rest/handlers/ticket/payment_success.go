@@ -27,6 +27,6 @@ func (h *Handler) PaymentSuccess(w http.ResponseWriter, r *http.Request) {
 
 	h.utilHandler.SendData(w, map[string]string{
 		"message":      "Payment successful",
-		"download_url": fmt.Sprintf("http://localhost:8080/ticket/download?id=%d", id),
+		"download_url": fmt.Sprintf("%s/ticket/download?id=%d", h.publicBaseURL, id),
 	}, http.StatusOK)
 }

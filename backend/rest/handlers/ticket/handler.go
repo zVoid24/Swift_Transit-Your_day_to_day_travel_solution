@@ -10,13 +10,15 @@ type Handler struct {
 	middlewareHandler *middlewares.Handler
 	mngr              *middlewares.Manager
 	utilHandler       *utils.Handler
+	publicBaseURL     string
 }
 
-func NewHandler(svc Service, middlewareHandler *middlewares.Handler, mngr *middlewares.Manager, utilHandler *utils.Handler) *Handler {
+func NewHandler(svc Service, middlewareHandler *middlewares.Handler, mngr *middlewares.Manager, utilHandler *utils.Handler, publicBaseURL string) *Handler {
 	return &Handler{
 		svc:               svc,
 		middlewareHandler: middlewareHandler,
 		mngr:              mngr,
 		utilHandler:       utilHandler,
+		publicBaseURL:     publicBaseURL,
 	}
 }
