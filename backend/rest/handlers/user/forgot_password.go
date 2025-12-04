@@ -40,7 +40,7 @@ func (h *Handler) InitiateForgotPassword(w http.ResponseWriter, r *http.Request)
 	}
 
 	otp := utils.GenerateOTP(6)
-	err = h.redisClient.Set(h.ctx, "forgot_otp:"+req.Email, otp, 5*time.Minute).Err()
+	err = h.redis.Set(h.ctx, "forgot_otp:"+req.Email, otp, 5*time.Minute).Err()
 	if err != nil {
 		h.utilHandler.SendError(w, map[string]string{"message": "Failed to generate OTP"}, http.StatusInternalServerError)
 		return
@@ -64,7 +64,7 @@ func (h *Handler) VerifyForgotPasswordOTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	storedOTP, err := h.redisClient.Get(h.ctx, "forgot_otp:"+req.Email).Result()
+	storedOTP, err := h.redis.Get(h.ctx, "forgot_otp:"+req.Email).Result()
 	if err != nil || storedOTP != req.OTP {
 		h.utilHandler.SendError(w, map[string]string{"message": "Invalid or expired OTP"}, http.StatusBadRequest)
 		return
@@ -72,14 +72,14 @@ func (h *Handler) VerifyForgotPasswordOTP(w http.ResponseWriter, r *http.Request
 
 	// OTP is valid, generate a reset token
 	resetToken := uuid.New().String()
-	err = h.redisClient.Set(h.ctx, "reset_token:"+resetToken, req.Email, 15*time.Minute).Err()
+	err = h.redis.Set(h.ctx, "reset_token:"+resetToken, req.Email, 15*time.Minute).Err()
 	if err != nil {
 		h.utilHandler.SendError(w, map[string]string{"message": "Failed to generate reset token"}, http.StatusInternalServerError)
 		return
 	}
 
 	// Clean up OTP
-	h.redisClient.Del(h.ctx, "forgot_otp:"+req.Email)
+	h.redis.Del(h.ctx, "forgot_otp:"+req.Email)
 
 	h.utilHandler.SendData(w, map[string]interface{}{"message": "OTP verified", "reset_token": resetToken}, http.StatusOK)
 }
@@ -91,7 +91,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email, err := h.redisClient.Get(h.ctx, "reset_token:"+req.Token).Result()
+	email, err := h.redis.Get(h.ctx, "reset_token:"+req.Token).Result()
 	if err != nil {
 		h.utilHandler.SendError(w, map[string]string{"message": "Invalid or expired reset token"}, http.StatusBadRequest)
 		return
@@ -104,7 +104,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Cleanup Token
-	h.redisClient.Del(h.ctx, "reset_token:"+req.Token)
+	h.redis.Del(h.ctx, "reset_token:"+req.Token)
 
 	h.utilHandler.SendData(w, map[string]string{"message": "Password updated successfully"}, http.StatusOK)
 }

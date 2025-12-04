@@ -72,3 +72,13 @@ func (r *busRepo) FindBus(start, end string) ([]domain.Bus, error) {
 
 	return buses, nil
 }
+
+func (r *busRepo) GetBusByRegistrationNumber(regNum string) (*domain.BusCredential, error) {
+	var busCred domain.BusCredential
+	query := `SELECT * FROM bus_credentials WHERE registration_number = $1`
+	err := r.dbCon.Get(&busCred, query, regNum)
+	if err != nil {
+		return nil, err
+	}
+	return &busCred, nil
+}

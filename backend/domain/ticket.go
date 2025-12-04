@@ -9,6 +9,7 @@ type Ticket struct {
 	EndDestination   string  `json:"end_destination" db:"end_destination"`
 	Fare             float64 `json:"fare" db:"fare"`
 	PaidStatus       bool    `json:"paid_status" db:"paid_status"`
+	Checked          bool    `json:"checked" db:"checked"`
 	QRCode           string  `json:"qr_code" db:"qr_code"`
 	CreatedAt        string  `json:"created_at" db:"created_at"`
 }

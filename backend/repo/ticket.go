@@ -95,3 +95,9 @@ func (r *ticketRepo) GetByUserID(userId int64) ([]domain.Ticket, error) {
 	}
 	return tickets, nil
 }
+
+func (r *ticketRepo) ValidateTicket(id int64) error {
+	query := `UPDATE tickets SET checked = TRUE WHERE id = $1`
+	_, err := r.dbCon.Exec(query, id)
+	return err
+}

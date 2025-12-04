@@ -7,3 +7,10 @@ type Bus struct {
 	Fare              float64     `json:"fare" db:"fare"`
 	Stops             []Stop      `json:"stops"`
 }
+
+type BusCredential struct {
+	Id                 int64  `json:"id" db:"id"`
+	RegistrationNumber string `json:"registration_number" db:"registration_number"`
+	Password           string `json:"password" db:"password"`
+	RouteId            int64  `json:"route_id" db:"route_id"`
+}

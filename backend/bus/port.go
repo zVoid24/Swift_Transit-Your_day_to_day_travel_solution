@@ -2,13 +2,15 @@ package bus
 
 import (
 	"swift_transit/domain"
-	"swift_transit/rest/handlers/bus"
 )
 
 type Service interface {
-	bus.Service
+	FindBus(start, end string) ([]domain.Bus, error)
+	Login(regNum, password string) (*domain.BusCredential, error)
+	ValidateTicket(ticketID int64, routeID int64) error
 }
 
 type BusRepo interface {
 	FindBus(start, end string) ([]domain.Bus, error)
+	GetBusByRegistrationNumber(regNum string) (*domain.BusCredential, error)
 }

@@ -166,6 +166,10 @@ func (s *service) ValidatePayment(valID string, tranID string, amount float64) (
 	return true, nil
 }
 
+func (s *service) ValidateTicket(id int64) error {
+	return s.repo.ValidateTicket(id)
+}
+
 func (s *service) UpdatePaymentStatus(id int64) error {
 	return s.repo.UpdateStatus(id, true)
 }

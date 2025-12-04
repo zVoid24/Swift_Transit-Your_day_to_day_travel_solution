@@ -9,6 +9,7 @@ import (
 	"swift_transit/infra/payment"
 	"swift_transit/infra/rabbitmq"
 	redisConf "swift_transit/infra/redis"
+	"swift_transit/location"
 	"swift_transit/repo"
 	"swift_transit/rest"
 	busHandler "swift_transit/rest/handlers/bus"
@@ -62,7 +63,7 @@ func Start() {
 	//domains
 	usrSvc := user.NewService(userRepo)
 	routeSvc := route.NewService(routeRepo)
-	busSvc := bus.NewService(busRepo)
+	busSvc := bus.NewService(busRepo, ticketRepo)
 	sslCommerz := payment.NewSSLCommerz(cnf.SSLCommerz)
 
 	// RabbitMQ
@@ -78,9 +79,13 @@ func Start() {
 	ticketWorker := ticket.NewTicketWorker(ticketSvc, rabbitMQ)
 	go ticketWorker.Start()
 
-	userHandler := userHandler.NewHandler(usrSvc, middlewareHandler, mngr, utilHandler, redisCon, ctx)
+	// WebSocket Hub
+	hub := location.NewHub()
+	go hub.Run()
+
+	userHandler := userHandler.NewHandler(usrSvc, middlewareHandler, mngr, utilHandler, redisCon, ctx, hub)
 	routeHandler := routeHandler.NewHandler(routeSvc, middlewareHandler, mngr, utilHandler)
-	busHandler := busHandler.NewHandler(busSvc, middlewareHandler, mngr, utilHandler)
+	busHandler := busHandler.NewHandler(busSvc, middlewareHandler, mngr, utilHandler, hub)
 	ticketHandler := ticketHandler.NewHandler(ticketSvc, middlewareHandler, mngr, utilHandler)
 	handler := rest.NewHandler(cnf, middlewareHandler, userHandler, routeHandler, busHandler, ticketHandler)
 	handler.Serve()
