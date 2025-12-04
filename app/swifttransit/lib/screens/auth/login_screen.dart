@@ -9,6 +9,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../core/colors.dart';
 // import path below — adjust if your file is in a different folder
 import '../../../widgets/app_snackbar.dart'; // <- change path to where app_snacbar.dart actually is
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -123,12 +124,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   Text("Remember Me", style: GoogleFonts.poppins(fontSize: 14)),
                   const Spacer(),
-                  Text(
-                    "Forgot Password?",
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ForgotPasswordScreen(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      "Forgot Password?",
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
                   ),
                 ],

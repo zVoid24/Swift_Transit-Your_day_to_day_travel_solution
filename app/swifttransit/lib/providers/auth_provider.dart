@@ -6,6 +6,8 @@ import '../core/constants.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool isLoading = false;
+  bool isForgotLoading = false;
+  bool isResettingPassword = false;
 
   final fullName = TextEditingController();
   final email = TextEditingController();
@@ -25,6 +27,77 @@ class AuthProvider extends ChangeNotifier {
 
   Map<String, dynamic>? _user;
   Map<String, dynamic>? get user => _user;
+
+  Future<bool> initiateForgotPassword(String email) async {
+    isForgotLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await http.post(
+        Uri.parse('${AppConstants.baseUrl}/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      isForgotLoading = false;
+      notifyListeners();
+      return response.statusCode == 200;
+    } catch (e) {
+      isForgotLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<String?> verifyForgotOtp(String email, String otp) async {
+    isForgotLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await http.post(
+        Uri.parse('${AppConstants.baseUrl}/auth/verify-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'otp': otp}),
+      );
+
+      isForgotLoading = false;
+      notifyListeners();
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return data['reset_token']?.toString();
+      }
+      return null;
+    } catch (e) {
+      isForgotLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> resetPasswordWithToken(String token, String newPassword) async {
+    isResettingPassword = true;
+    notifyListeners();
+
+    try {
+      final response = await http.post(
+        Uri.parse('${AppConstants.baseUrl}/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'token': token,
+          'new_password': newPassword,
+        }),
+      );
+
+      isResettingPassword = false;
+      notifyListeners();
+      return response.statusCode == 200;
+    } catch (e) {
+      isResettingPassword = false;
+      notifyListeners();
+      return false;
+    }
+  }
 
   Future<bool> login(String mobile, String password) async {
     isLoading = true;

@@ -8,7 +8,9 @@ import '../search/search_screen.dart';
 import 'ticket_detail_screen.dart';
 
 class TicketListScreen extends StatefulWidget {
-  const TicketListScreen({super.key});
+  const TicketListScreen({super.key, this.showBottomNav = true});
+
+  final bool showBottomNav;
 
   @override
   State<TicketListScreen> createState() => _TicketListScreenState();
@@ -143,10 +145,12 @@ class _TicketListScreenState extends State<TicketListScreen> {
           );
         },
       ),
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: 2,
-        onItemSelected: _onNavTap,
-      ),
+      bottomNavigationBar: widget.showBottomNav
+          ? AppBottomNav(
+              currentIndex: 2,
+              onItemSelected: _onNavTap,
+            )
+          : null,
     );
   }
 }

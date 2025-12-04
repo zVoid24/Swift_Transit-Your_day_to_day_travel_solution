@@ -103,6 +103,113 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
     );
   }
 
+  Future<bool> _confirmWalletPayment(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              'Pay with Swift Balance?',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+            ),
+            content: Text(
+              'Are you sure you want to use your Swift balance for this ticket?',
+              style: GoogleFonts.poppins(color: Colors.grey[700]),
+            ),
+            actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text('Confirm', style: GoogleFonts.poppins(color: Colors.white)),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  void _showLoadingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Processing payment...',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showWalletSuccess(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.check, color: AppColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Payment Successful',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        content: Text(
+          'Your ticket has been paid using Swift balance.',
+          style: GoogleFonts.poppins(color: Colors.grey[700]),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Done', style: GoogleFonts.poppins(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<DashboardProvider>(context);
@@ -662,7 +769,29 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           child: InkWell(
-            onTap: () => provider.buyTicket(context, paymentMethod: "wallet"),
+            onTap: () async {
+              final confirmed = await _confirmWalletPayment(context);
+              if (!confirmed) return;
+
+              _showLoadingDialog(context);
+              final success = await provider.buyTicket(
+                context,
+                paymentMethod: "wallet",
+              );
+
+              if (!context.mounted) return;
+              Navigator.of(context, rootNavigator: true).pop();
+
+              if (success && context.mounted) {
+                await _showWalletSuccess(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Payment could not be completed. Try again.'),
+                  ),
+                );
+              }
+            },
             borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.all(16),
