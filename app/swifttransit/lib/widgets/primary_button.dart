@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String text;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool loading;
 
   const PrimaryButton({
     super.key,
     required this.text,
-    required this.onTap,
+    this.onTap,
     this.loading = false,
   });
 

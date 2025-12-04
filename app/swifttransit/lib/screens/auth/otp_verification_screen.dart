@@ -196,7 +196,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                     // Visible Boxes
                     GestureDetector(
-                      onTap: () => _focusNode.requestFocus(),
+                      onTap: () {
+                        if (_focusNode.hasFocus) {
+                          _focusNode.unfocus();
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            _focusNode.requestFocus();
+                          });
+                        } else {
+                          _focusNode.requestFocus();
+                        }
+                      },
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(6, (index) {

@@ -1,6 +1,5 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'package:google_nav_bar/google_nav_bar.dart';
 import '../core/colors.dart';
 
 class AppBottomNav extends StatelessWidget {
@@ -15,88 +14,40 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = const [
-      _NavItemData(Icons.home, 'Home'),
-      _NavItemData(Icons.search, 'Search'),
-      _NavItemData(Icons.confirmation_num, 'My Ticket'),
-      _NavItemData(Icons.person, 'Account'),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.92),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x22000000),
-                  blurRadius: 24,
-                  offset: Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(items.length, (index) {
-                final active = index == currentIndex;
-                final item = items[index];
-                return InkWell(
-                  onTap: () => onItemSelected(index),
-                  borderRadius: BorderRadius.circular(16),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: active
-                          ? AppColors.primary.withOpacity(0.12)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          item.icon,
-                          color:
-                              active ? AppColors.primary : Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item.label,
-                          style: TextStyle(
-                            color: active
-                                ? AppColors.primary
-                                : Colors.grey.shade500,
-                            fontSize: 12,
-                            fontWeight:
-                                active ? FontWeight.w700 : FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(blurRadius: 20, color: Colors.black.withOpacity(.1)),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8),
+          child: GNav(
+            rippleColor: Colors.grey[300]!,
+            hoverColor: Colors.grey[100]!,
+            gap: 8,
+            activeColor: AppColors.primary,
+            iconSize: 24,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            duration: const Duration(milliseconds: 400),
+            tabBackgroundColor: AppColors.primary.withOpacity(0.1),
+            color: Colors.grey[600],
+            tabs: const [
+              GButton(icon: Icons.home_rounded, text: 'Home'),
+              GButton(icon: Icons.search_rounded, text: 'Search'),
+              GButton(
+                icon: Icons.confirmation_number_rounded,
+                text: 'My Ticket',
+              ),
+              GButton(icon: Icons.person_rounded, text: 'Account'),
+            ],
+            selectedIndex: currentIndex,
+            onTabChange: onItemSelected,
           ),
         ),
       ),
     );
   }
-}
-
-class _NavItemData {
-  final IconData icon;
-  final String label;
-
-  const _NavItemData(this.icon, this.label);
 }

@@ -15,7 +15,8 @@ class ForgotPasswordOtpScreen extends StatefulWidget {
   const ForgotPasswordOtpScreen({super.key, required this.email});
 
   @override
-  State<ForgotPasswordOtpScreen> createState() => _ForgotPasswordOtpScreenState();
+  State<ForgotPasswordOtpScreen> createState() =>
+      _ForgotPasswordOtpScreenState();
 }
 
 class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
@@ -29,12 +30,16 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
   bool _canResend = false;
   bool _otpVerified = false;
   String? _resetToken;
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
 
   @override
   void initState() {
     super.initState();
     _startTimer();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _focusNode.requestFocus());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _focusNode.requestFocus(),
+    );
   }
 
   @override
@@ -120,7 +125,10 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
     }
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final success = await auth.resetPasswordWithToken(_resetToken!, newPassword);
+    final success = await auth.resetPasswordWithToken(
+      _resetToken!,
+      newPassword,
+    );
     if (!mounted) return;
 
     if (success) {
@@ -149,187 +157,244 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              Text(
-                'Reset password',
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              RichText(
-                text: TextSpan(
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+        child: CustomScrollView(
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const TextSpan(
-                      text: 'Enter the verification code sent to\n',
-                    ),
-                    TextSpan(
-                      text: widget.email,
+                    const SizedBox(height: 20),
+                    Text(
+                      'Reset password',
                       style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Text(
-                  'Change email',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-              Center(
-                child: Stack(
-                  children: [
-                    Opacity(
-                      opacity: 0,
-                      child: TextField(
-                        controller: _otpController,
-                        focusNode: _focusNode,
-                        keyboardType: TextInputType.number,
-                        maxLength: 6,
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => _focusNode.requestFocus(),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: List.generate(6, (index) {
-                          final code = _otpController.text;
-                          final char = index < code.length ? code[index] : '';
-                          final isFocused = index == code.length;
-
-                          return Container(
-                            width: 45,
-                            height: 55,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isFocused
-                                    ? AppColors.primary
-                                    : Colors.grey.shade300,
-                                width: isFocused ? 2 : 1,
-                              ),
-                              boxShadow: [
-                                if (isFocused)
-                                  BoxShadow(
-                                    color: AppColors.primary.withOpacity(0.2),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Text(
-                                char,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 30),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _canResend ? 'Code expired' : 'Resend in $_start s',
-                    style: GoogleFonts.poppins(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: _canResend ? _onResend : null,
-                    child: Text(
-                      'Resend Code',
-                      style: GoogleFonts.poppins(
-                        color: _canResend ? AppColors.primary : Colors.grey,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    RichText(
+                      text: TextSpan(
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                        children: [
+                          const TextSpan(
+                            text: 'Enter the verification code sent to\n',
+                          ),
+                          TextSpan(
+                            text: widget.email,
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Text(
+                        'Change email',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    Center(
+                      child: Stack(
+                        children: [
+                          Opacity(
+                            opacity: 0,
+                            child: TextField(
+                              controller: _otpController,
+                              focusNode: _focusNode,
+                              keyboardType: TextInputType.number,
+                              maxLength: 6,
+                              onChanged: (_) => setState(() {}),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              if (_focusNode.hasFocus) {
+                                _focusNode.unfocus();
+                                Future.delayed(
+                                  const Duration(milliseconds: 100),
+                                  () {
+                                    _focusNode.requestFocus();
+                                  },
+                                );
+                              } else {
+                                _focusNode.requestFocus();
+                              }
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: List.generate(6, (index) {
+                                final code = _otpController.text;
+                                final char = index < code.length
+                                    ? code[index]
+                                    : '';
+                                final isFocused = index == code.length;
+
+                                return Container(
+                                  width: 45,
+                                  height: 55,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isFocused
+                                          ? AppColors.primary
+                                          : Colors.grey.shade300,
+                                      width: isFocused ? 2 : 1,
+                                    ),
+                                    boxShadow: [
+                                      if (isFocused)
+                                        BoxShadow(
+                                          color: AppColors.primary.withOpacity(
+                                            0.2,
+                                          ),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      char,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _canResend ? 'Code expired' : 'Resend in $_start s',
+                          style: GoogleFonts.poppins(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _canResend ? _onResend : null,
+                          child: Text(
+                            'Resend Code',
+                            style: GoogleFonts.poppins(
+                              color: _canResend
+                                  ? AppColors.primary
+                                  : Colors.grey,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (_otpVerified) ...[
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: !_isPasswordVisible,
+                        decoration: InputDecoration(
+                          hintText: 'New password',
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: _confirmController,
+                        obscureText: !_isConfirmPasswordVisible,
+                        decoration: InputDecoration(
+                          hintText: 'Confirm new password',
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isConfirmPasswordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isConfirmPasswordVisible =
+                                    !_isConfirmPasswordVisible;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                    const Spacer(),
+                    if (!_otpVerified)
+                      Consumer<AuthProvider>(
+                        builder: (context, ap, _) => PrimaryButton(
+                          text: ap.isForgotLoading
+                              ? 'Verifying...'
+                              : 'Verify OTP',
+                          onTap: ap.isForgotLoading ? null : () => _verifyOtp(),
+                        ),
+                      )
+                    else
+                      Consumer<AuthProvider>(
+                        builder: (context, ap, _) => PrimaryButton(
+                          text: ap.isResettingPassword
+                              ? 'Updating...'
+                              : 'Update Password',
+                          onTap: ap.isResettingPassword
+                              ? null
+                              : () => _resetPassword(),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              if (_otpVerified) ...[
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    hintText: 'New password',
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: _confirmController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    hintText: 'Confirm new password',
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-              ],
-              const Spacer(),
-              if (!_otpVerified)
-                Consumer<AuthProvider>(
-                  builder: (context, ap, _) => PrimaryButton(
-                    text: ap.isForgotLoading ? 'Verifying...' : 'Verify OTP',
-                    onTap: ap.isForgotLoading ? null : _verifyOtp,
-                  ),
-                )
-              else
-                Consumer<AuthProvider>(
-                  builder: (context, ap, _) => PrimaryButton(
-                    text:
-                        ap.isResettingPassword ? 'Updating...' : 'Update Password',
-                    onTap: ap.isResettingPassword ? null : _resetPassword,
-                  ),
-                ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

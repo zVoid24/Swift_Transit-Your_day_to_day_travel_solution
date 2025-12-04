@@ -83,10 +83,7 @@ class AuthProvider extends ChangeNotifier {
       final response = await http.post(
         Uri.parse('${AppConstants.baseUrl}/auth/reset-password'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'token': token,
-          'new_password': newPassword,
-        }),
+        body: jsonEncode({'token': token, 'new_password': newPassword}),
       );
 
       isResettingPassword = false;
@@ -145,6 +142,13 @@ class AuthProvider extends ChangeNotifier {
       return true;
     }
     return false;
+  }
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    _user = null;
+    notifyListeners();
   }
 
   Future<bool> initiateSignup() async {
