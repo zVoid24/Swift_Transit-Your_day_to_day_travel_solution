@@ -217,7 +217,8 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
                     const SizedBox(height: 16),
 
                     // Bus Selection & Payment Cards
-                    if (provider.currentRouteId != null)
+                    if (provider.currentRouteId != null ||
+                        provider.availableBuses.isNotEmpty)
                       _buildSelectionCards(context, provider),
                   ],
                 ),
@@ -296,65 +297,202 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
     BuildContext context,
     DashboardProvider provider,
   ) {
+    final buses = provider.availableBuses;
+    final fareText = provider.currentFare != null
+        ? "৳${provider.currentFare!.toStringAsFixed(0)}"
+        : "৳--";
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Card 1: Bus Selection
-        Card(
-          elevation: 2,
-          shadowColor: Colors.black12,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: HugeIcon(
-                    icon: HugeIcons.strokeRoundedBus01,
-                    color: AppColors.primary,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      provider.currentBusName ?? "Swift Bus",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      "Available Now",
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.green,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                Text(
-                  "৳50", // Mock fare for now
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
+        if (buses.isNotEmpty) ...[
+          Text(
+            "Available buses (${buses.length})",
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
             ),
           ),
-        ),
+          const SizedBox(height: 8),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: buses.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final bus = buses[index];
+              final stops = (bus['stops'] as List?)
+                      ?.whereType<Map<String, dynamic>>()
+                      .toList() ??
+                  [];
+              final startName = stops.isNotEmpty
+                  ? (stops.first['name']?.toString() ?? '')
+                  : provider.selectedDeparture ?? '';
+              final endName = stops.length > 1
+                  ? (stops.last['name']?.toString() ?? '')
+                  : provider.selectedDestination ?? '';
+              final fare = bus['fare'];
+              final fareDisplay = fare is num
+                  ? "৳${fare.toStringAsFixed(0)}"
+                  : (fare != null ? "৳$fare" : "৳--");
+              final isSelected = provider.selectedBusIndex == index;
+
+              return InkWell(
+                onTap: () {
+                  provider.selectBus(index);
+                  if (provider.routePoints.isNotEmpty) {
+                    _zoomToRoute(provider.routePoints);
+                  }
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primary.withOpacity(0.08)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isSelected ? AppColors.primary : Colors.grey[200]!,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedBus01,
+                          color: AppColors.primary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    bus['name']?.toString() ?? 'Swift Bus',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: (isSelected
+                                            ? AppColors.primary
+                                            : Colors.green)
+                                        .withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    isSelected ? "Selected" : "Available",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : Colors.green,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              "$startName → $endName",
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Tap to view this route on the map and continue",
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            fareDisplay,
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Icon(
+                            isSelected
+                                ? Icons.check_circle
+                                : Icons.radio_button_unchecked,
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.grey[400],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ] else ...[
+          Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.grey),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "No buses found for this route yet. Try adjusting the stops and search again.",
+                      style: GoogleFonts.poppins(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+
         const SizedBox(height: 12),
 
         // Card 2: Pay Online
@@ -385,7 +523,7 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    "Pay Online",
+                    "Pay Online ($fareText)",
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -432,7 +570,7 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    "Pay via Swift Balance",
+                    "Pay via Swift Balance ($fareText)",
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

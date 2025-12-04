@@ -34,6 +34,8 @@ class DashboardProvider extends ChangeNotifier {
   List<Marker> markers = [];
   int? currentRouteId;
   String? currentBusName;
+  List<Map<String, dynamic>> availableBuses = [];
+  int? selectedBusIndex;
 
   List<dynamic> tickets = [];
   bool isLoadingTickets = false;
@@ -247,6 +249,15 @@ class DashboardProvider extends ChangeNotifier {
   Future<void> searchBus() async {
     if (selectedDeparture == null || selectedDestination == null) return;
 
+    // Clear previous state so users don't see stale routes while searching
+    currentRouteId = null;
+    currentBusName = null;
+    selectedBusIndex = null;
+    availableBuses = [];
+    routePoints = [];
+    markers = [];
+    notifyListeners();
+
     try {
       final response = await http.post(
         Uri.parse('${AppConstants.baseUrl}/bus/find'),
@@ -261,57 +272,91 @@ class DashboardProvider extends ChangeNotifier {
         final List<dynamic> data = jsonDecode(response.body);
         if (data.isEmpty) {
           debugPrint("No bus found");
-          routePoints = [];
-          markers = [];
-          currentRouteId = null;
           notifyListeners();
           return;
         }
 
-        final bus = data[0]; // Take the first bus for now
-        currentRouteId = bus['id'];
-        currentBusName = bus['name'] ?? "Swift Bus";
-        final geometry = bus['linestring_geojson']; // GeoJSON string
-        final stops = bus['stops'] as List;
-
-        // Parse GeoJSON LineString
-        List<dynamic> coordinates = [];
-        if (geometry is String) {
-          final geoJson = jsonDecode(geometry);
-          coordinates = geoJson['coordinates'];
-        } else {
-          coordinates = geometry['coordinates'];
+        availableBuses = data.whereType<Map<String, dynamic>>().toList();
+        if (availableBuses.isEmpty) {
+          debugPrint("No valid bus data returned");
+          notifyListeners();
+          return;
         }
 
-        routePoints = coordinates.map<LatLng>((coord) {
-          return LatLng(
-            coord[1],
-            coord[0],
-          ); // GeoJSON is [lon, lat], LatLng is [lat, lon]
-        }).toList();
-
-        // Parse Stops
-        markers = stops.map<Marker>((stop) {
-          return Marker(
-            point: LatLng(stop['lat'], stop['lon']),
-            width: 40,
-            height: 40,
-            child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-          );
-        }).toList();
-
-        notifyListeners();
+        _setSelectedBus(0);
       } else {
         debugPrint("Bus not found: ${response.body}");
         // Clear map if route not found
-        routePoints = [];
-        markers = [];
-        currentRouteId = null;
         notifyListeners();
       }
     } catch (e) {
       debugPrint("Error searching bus: $e");
     }
+  }
+
+  void selectBus(int index) {
+    _setSelectedBus(index);
+  }
+
+  void _setSelectedBus(int index) {
+    if (index < 0 || index >= availableBuses.length) return;
+
+    final bus = availableBuses[index];
+    selectedBusIndex = index;
+    currentRouteId = (bus['id'] as num?)?.toInt();
+    currentBusName = bus['name']?.toString() ?? "Swift Bus";
+
+    final geometry = bus['linestring_geojson'];
+    List<dynamic> coordinates = [];
+    if (geometry is String && geometry.isNotEmpty) {
+      final geoJson = jsonDecode(geometry);
+      coordinates = geoJson['coordinates'] ?? [];
+    } else if (geometry is Map<String, dynamic>) {
+      coordinates = geometry['coordinates'] ?? [];
+    }
+
+    routePoints = coordinates
+        .whereType<List>()
+        .map<LatLng?>((coord) {
+          if (coord.length < 2) return null;
+          final lon = coord[0];
+          final lat = coord[1];
+          if (lon is num && lat is num) {
+            return LatLng(lat.toDouble(), lon.toDouble());
+          }
+          return null;
+        })
+        .whereType<LatLng>()
+        .toList();
+
+    final stops = (bus['stops'] as List?) ?? [];
+    markers = stops
+        .map<Marker?>((stop) {
+          final lat = stop['lat'];
+          final lon = stop['lon'];
+          if (lat is num && lon is num) {
+            return Marker(
+              point: LatLng(lat.toDouble(), lon.toDouble()),
+              width: 40,
+              height: 40,
+              child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+            );
+          }
+          return null;
+        })
+        .whereType<Marker>()
+        .toList();
+
+    notifyListeners();
+  }
+
+  double? get currentFare {
+    if (selectedBusIndex == null || selectedBusIndex! >= availableBuses.length) {
+      return null;
+    }
+    final fare = availableBuses[selectedBusIndex!]['fare'];
+    if (fare is num) return fare.toDouble();
+    return double.tryParse(fare?.toString() ?? '');
   }
 
   /// Buy ticket - unchanged but kept here for completeness
