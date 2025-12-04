@@ -10,7 +10,9 @@ import '../profile/profile_screen.dart';
 import '../ticket/ticket_list_screen.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.showBottomNav = true});
+
+  final bool showBottomNav;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -125,7 +127,10 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                         ),
                         onPressed: () => _performSearch(provider),
-                        icon: const Icon(Icons.map_outlined, color: Colors.white),
+                        icon: const Icon(
+                          Icons.map_outlined,
+                          color: Colors.white,
+                        ),
                         label: const Text(
                           'Show Route',
                           style: TextStyle(
@@ -135,7 +140,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                       ),
                     ),
-                    if (provider.isSearchingRoutes)
+                    if (provider.isSearchingRoutes == true)
                       const Padding(
                         padding: EdgeInsets.only(top: 12),
                         child: LinearProgressIndicator(minHeight: 3),
@@ -172,10 +177,12 @@ class _SearchScreenState extends State<SearchScreen> {
                                     Row(
                                       children: [
                                         CircleAvatar(
-                                          backgroundColor:
-                                              AppColors.primary.withOpacity(0.12),
-                                          child: const Icon(Icons.directions_bus,
-                                              color: AppColors.primary),
+                                          backgroundColor: AppColors.primary
+                                              .withOpacity(0.12),
+                                          child: const Icon(
+                                            Icons.directions_bus,
+                                            color: AppColors.primary,
+                                          ),
                                         ),
                                         const SizedBox(width: 12),
                                         Expanded(
@@ -184,7 +191,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                selectedRoute['name'] ?? 'Route',
+                                                selectedRoute['name'] ??
+                                                    'Route',
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w700,
                                                   fontSize: 16,
@@ -199,7 +207,10 @@ class _SearchScreenState extends State<SearchScreen> {
                                             ],
                                           ),
                                         ),
-                                        _buildStatusChip('Preview', AppColors.primary),
+                                        _buildStatusChip(
+                                          'Preview',
+                                          AppColors.primary,
+                                        ),
                                       ],
                                     ),
                                     const SizedBox(height: 12),
@@ -209,9 +220,11 @@ class _SearchScreenState extends State<SearchScreen> {
                                       children: stops
                                           .map<Widget>(
                                             (stop) => Chip(
-                                              backgroundColor:
-                                                  AppColors.primary.withOpacity(0.08),
-                                              label: Text(stop['name']?.toString() ?? ''),
+                                              backgroundColor: AppColors.primary
+                                                  .withOpacity(0.08),
+                                              label: Text(
+                                                stop['name']?.toString() ?? '',
+                                              ),
                                             ),
                                           )
                                           .toList(),
@@ -231,7 +244,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                       : const LatLng(23.8103, 90.4125),
                                   initialZoom: points.isNotEmpty ? 13 : 11,
                                   interactionOptions: const InteractionOptions(
-                                    flags: InteractiveFlag.pinchZoom |
+                                    flags:
+                                        InteractiveFlag.pinchZoom |
                                         InteractiveFlag.drag |
                                         InteractiveFlag.doubleTapZoom,
                                   ),
@@ -240,8 +254,9 @@ class _SearchScreenState extends State<SearchScreen> {
                                   TileLayer(
                                     urlTemplate:
                                         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                    subdomains: const ['a', 'b', 'c'],
-                                    userAgentPackageName: 'com.example.app',
+
+                                    userAgentPackageName:
+                                        'com.example.swifttransit',
                                   ),
                                   if (points.isNotEmpty)
                                     PolylineLayer(
@@ -254,9 +269,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                       ],
                                     ),
                                   if (markers.isNotEmpty)
-                                    MarkerLayer(
-                                      markers: markers,
-                                    ),
+                                    MarkerLayer(markers: markers),
                                 ],
                               ),
                             ),
@@ -264,93 +277,91 @@ class _SearchScreenState extends State<SearchScreen> {
                           const SizedBox(height: 16),
                           Text(
                             'Matching Routes',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 8),
-                          ...routes.asMap().entries.map(
-                            (entry) {
-                              final index = entry.key;
-                              final route = entry.value;
-                              final routeStops = (route['stops'] as List?) ?? [];
-                              final isSelected =
-                                  provider.selectedRoute != null &&
-                                      provider.selectedRoute == route;
-                              return GestureDetector(
-                                onTap: () =>
-                                    provider.selectSearchedRoute(index),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  margin:
-                                      const EdgeInsets.symmetric(vertical: 6),
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
+                          ...routes.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final route = entry.value;
+                            final routeStops = (route['stops'] as List?) ?? [];
+                            final isSelected =
+                                provider.selectedRoute != null &&
+                                provider.selectedRoute == route;
+                            return GestureDetector(
+                              onTap: () => provider.selectSearchedRoute(index),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                margin: const EdgeInsets.symmetric(vertical: 6),
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.primary.withOpacity(0.08)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
                                     color: isSelected
-                                        ? AppColors.primary.withOpacity(0.08)
-                                        : Colors.white,
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : Colors.grey.shade200,
+                                        ? AppColors.primary
+                                        : Colors.grey.shade200,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.03),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary
-                                              .withOpacity(0.12),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.route,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              route['name']?.toString() ??
-                                                  'Unnamed Route',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 15,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              '${routeStops.length} stoppage(s)',
-                                              style: TextStyle(
-                                                color: Colors.grey.shade600,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const Icon(Icons.arrow_forward_ios,
-                                          size: 16, color: Colors.black54),
-                                    ],
-                                  ),
+                                  ],
                                 ),
-                              );
-                            },
-                          ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withOpacity(
+                                          0.12,
+                                        ),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.route,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            route['name']?.toString() ??
+                                                'Unnamed Route',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${routeStops.length} stoppage(s)',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: 16,
+                                      color: Colors.black54,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
                           const SizedBox(height: 16),
                         ],
                       ),
@@ -359,10 +370,9 @@ class _SearchScreenState extends State<SearchScreen> {
           );
         },
       ),
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: 1,
-        onItemSelected: _onNavTap,
-      ),
+      bottomNavigationBar: widget.showBottomNav == true
+          ? AppBottomNav(currentIndex: 1, onItemSelected: _onNavTap)
+          : null,
     );
   }
 }

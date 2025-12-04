@@ -36,7 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   final List<Widget> _screens = const [
     _DashboardContent(),
-    SearchScreen(),
+    SearchScreen(showBottomNav: false),
     TicketListScreen(showBottomNav: false),
     DemoProfileScreen(),
   ];
