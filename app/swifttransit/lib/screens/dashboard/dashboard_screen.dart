@@ -34,11 +34,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const _DashboardContent(),
-    const SearchScreen(),
-    const TicketListScreen(),
-    const DemoProfileScreen(),
+  final List<Widget> _screens = const [
+    _DashboardContent(),
+    SearchScreen(),
+    TicketListScreen(showBottomNav: false),
+    DemoProfileScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -109,13 +109,6 @@ class _DashboardContent extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: _MyTicketCard(),
-              ),
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: _PreviousTripsSection(
-                  hasPrevious: false,
-                ), // static: no previous trips
               ),
               const SizedBox(height: 24),
             ],
@@ -214,23 +207,6 @@ class _BalanceCard extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  Future<void> _handleRefresh(BuildContext context) async {
-    final dashboardProvider = Provider.of<DashboardProvider>(
-      context,
-      listen: false,
-    );
-    try {
-      final result = await dashboardProvider.refreshBalance();
-      if (result == null || result == true) {
-        _showSnack(context, 'Balance refreshed');
-      } else {
-        _showSnack(context, 'Failed to refresh balance');
-      }
-    } catch (e) {
-      _showSnack(context, 'Error refreshing balance');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     // Modern minimal card: balance left, recharge & refresh right, points below with arrow
@@ -315,28 +291,6 @@ class _BalanceCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 0,
-                ),
-              ),
-
-              const SizedBox(width: 8),
-
-              // Refresh button (round) - wired to provider
-              InkWell(
-                onTap: () async {
-                  await _handleRefresh(context);
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.refresh,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
                 ),
               ),
             ],
@@ -517,12 +471,8 @@ class _MyTicketCard extends StatefulWidget {
 }
 
 class _MyTicketCardState extends State<_MyTicketCard> {
-  int _selected = 0; // 0: All, 1: Previous, 2: Cancel
-
   @override
   Widget build(BuildContext context) {
-    final tabs = ['All ticket', 'Previous ticket', 'Cancel ticket'];
-
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -559,55 +509,10 @@ class _MyTicketCardState extends State<_MyTicketCard> {
             ],
           ),
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: List.generate(tabs.length, (i) {
-                final selected = i == _selected;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selected = i),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        color: selected ? Colors.white : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
-                        border: selected
-                            ? Border.all(color: Colors.grey.shade200)
-                            : null,
-                      ),
-                      child: Center(
-                        child: Text(
-                          tabs[i],
-                          style: TextStyle(
-                            fontWeight: selected
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
           const SizedBox(height: 12),
           Consumer<DashboardProvider>(
             builder: (context, provider, _) {
-              if (_selected == 0)
-                return Column(children: _sampleTicketsAll(provider));
-              if (_selected == 1)
-                return Column(children: _sampleTicketsPrevious());
-              if (_selected == 2)
-                return Column(children: _sampleTicketsCancelled());
-              return const SizedBox();
+              return Column(children: _sampleTicketsAll(provider));
             },
           ),
         ],
@@ -670,24 +575,6 @@ class _MyTicketCardState extends State<_MyTicketCard> {
       );
     }).toList();
   }
-
-  List<Widget> _sampleTicketsPrevious() => [
-    const SizedBox(height: 12),
-    _TicketRow(
-      title: 'Sylhet → Dhaka',
-      subtitle: '10 Nov • 02:30 PM',
-      status: 'Completed',
-    ),
-  ];
-
-  List<Widget> _sampleTicketsCancelled() => [
-    const SizedBox(height: 12),
-    _TicketRow(
-      title: 'Comilla → Dhaka',
-      subtitle: '01 Oct • 08:00 AM',
-      status: 'Cancelled',
-    ),
-  ];
 }
 
 class _TicketRow extends StatelessWidget {
@@ -803,145 +690,3 @@ class _TicketRow extends StatelessWidget {
   }
 }
 
-class _PreviousTripsSection extends StatelessWidget {
-  final bool hasPrevious;
-  const _PreviousTripsSection({Key? key, required this.hasPrevious})
-    : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Previous Trips',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-        ),
-        const SizedBox(height: 12),
-        if (hasPrevious)
-          Column(
-            children: [
-              _TripCard(from: 'Dhaka', to: 'Sylhet', time: '08:00 AM • 12 Oct'),
-              const SizedBox(height: 8),
-              _TripCard(
-                from: 'Dhaka',
-                to: 'Comilla',
-                time: '02:00 PM • 05 Sep',
-              ),
-            ],
-          )
-        else
-          _SuggestedTrip(),
-      ],
-    );
-  }
-}
-
-class _TripCard extends StatelessWidget {
-  final String from;
-  final String to;
-  final String time;
-
-  const _TripCard({
-    required this.from,
-    required this.to,
-    required this.time,
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 6)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.place, color: AppColors.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$from → $to',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  time,
-                  style: TextStyle(color: Colors.black54, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text('Rebook'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SuggestedTrip extends StatelessWidget {
-  const _SuggestedTrip({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 6)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.lightbulb, color: Colors.amber),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Suggested Trip',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Dhaka → Chittagong • 09:00 AM — 12:30 PM',
-                  style: TextStyle(color: Colors.black54, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text('Book', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-}

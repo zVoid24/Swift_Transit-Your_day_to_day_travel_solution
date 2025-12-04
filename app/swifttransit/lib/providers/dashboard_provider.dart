@@ -385,8 +385,8 @@ class DashboardProvider extends ChangeNotifier {
     return double.tryParse(fare?.toString() ?? '');
   }
 
-  /// Buy ticket - unchanged but kept here for completeness
-  Future<void> buyTicket(
+  /// Buy ticket - returns true when a payment flow finishes successfully
+  Future<bool> buyTicket(
     BuildContext context, {
     String paymentMethod = "gateway",
   }) async {
@@ -394,14 +394,14 @@ class DashboardProvider extends ChangeNotifier {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please search for a route first")),
       );
-      return;
+      return false;
     }
 
     if (currentRouteId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please search for a route first")),
       );
-      return;
+      return false;
     }
 
     final prefs = await SharedPreferences.getInstance();
@@ -411,7 +411,7 @@ class DashboardProvider extends ChangeNotifier {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please log in again to buy a ticket.")),
       );
-      return;
+      return false;
     }
 
     final user = jsonDecode(userStr);
@@ -447,21 +447,27 @@ class DashboardProvider extends ChangeNotifier {
           ),
         );
 
-        await _pollTicketStatus(context, data['tracking_id'], normalizedMethod);
+        return await _pollTicketStatus(
+          context,
+          data['tracking_id'],
+          normalizedMethod,
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Failed to buy ticket: ${response.body}")),
         );
+        return false;
       }
     } catch (e) {
       debugPrint("Error buying ticket: $e");
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      return false;
     }
   }
 
-  Future<void> _pollTicketStatus(
+  Future<bool> _pollTicketStatus(
     BuildContext context,
     String trackingId,
     String paymentMethod,
@@ -495,7 +501,7 @@ class DashboardProvider extends ChangeNotifier {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Ticket request failed.')),
             );
-            return;
+            return false;
           }
 
           if (paymentMethod == 'wallet') {
@@ -511,14 +517,14 @@ class DashboardProvider extends ChangeNotifier {
             await fetchUserInfo();
             await fetchTickets();
             clearSearch();
-            return;
+            return true;
           }
 
           await _openGatewayCheckout(context, paymentUrl, ticketId);
           await fetchTickets();
           await fetchUserInfo();
           clearSearch();
-          return;
+          return true;
         }
       } catch (e) {
         debugPrint("Polling error: $e");
@@ -533,6 +539,7 @@ class DashboardProvider extends ChangeNotifier {
         ),
       ),
     );
+    return false;
   }
 
   Future<void> _openGatewayCheckout(
