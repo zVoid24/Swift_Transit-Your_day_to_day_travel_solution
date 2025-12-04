@@ -1,3 +1,4 @@
+-- +migrate Up
 CREATE TABLE IF NOT EXISTS bus_credentials (
     id SERIAL PRIMARY KEY,
     registration_number VARCHAR(255) UNIQUE NOT NULL,

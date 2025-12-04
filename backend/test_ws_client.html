@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Test Client</title>
+    <style>
+      body {
+        font-family: monospace;
+        padding: 20px;
+      }
+      #log {
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 400px;
+        overflow-y: scroll;
+        background: #f9f9f9;
+      }
+      .received {
+        color: green;
+      }
+      .error {
+        color: red;
+      }
+      .status {
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WebSocket Test Client</h1>
+    <div>
+      <label>Route ID: <input type="number" id="routeId" value="1" /></label>
+      <button onclick="connect()">Connect</button>
+      <button onclick="disconnect()">Disconnect</button>
+    </div>
+    <div id="status" class="status">Status: Disconnected</div>
+    <div id="log"></div>
+
+    <script>
+      let ws;
+
+      function connect() {
+        const routeId = document.getElementById("routeId").value;
+        const url = `ws://localhost:8080/ws/location?route_id=${routeId}`;
+
+        if (ws) {
+          ws.close();
+        }
+
+        ws = new WebSocket(url);
+
+        ws.onopen = function () {
+          document.getElementById("status").innerText = "Status: Connected";
+          log("Connected to " + url);
+        };
+
+        ws.onmessage = function (event) {
+          log("Received: " + event.data, "received");
+        };
+
+        ws.onclose = function () {
+          document.getElementById("status").innerText = "Status: Disconnected";
+          log("Disconnected");
+        };
+
+        ws.onerror = function (error) {
+          log("Error: " + error, "error");
+        };
+      }
+
+      function disconnect() {
+        if (ws) {
+          ws.close();
+        }
+      }
+
+      function log(message, type = "") {
+        const logDiv = document.getElementById("log");
+        const entry = document.createElement("div");
+        entry.className = type;
+        entry.innerText = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logDiv.appendChild(entry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+    </script>
+  </body>
+</html>
