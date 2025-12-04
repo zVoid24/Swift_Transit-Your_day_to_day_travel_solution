@@ -298,7 +298,11 @@ class DashboardProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final paymentUrl = data['gateway_url']?.toString();
+
+        // Some environments return `gateway_url` (recharge) while others
+        // mirror the ticket flow and return `payment_url`. Handle both so the
+        // webview always opens.
+        final paymentUrl = (data['gateway_url'] ?? data['payment_url'])?.toString();
         if (paymentUrl == null || paymentUrl.isEmpty) {
           throw Exception('Invalid payment URL');
         }
