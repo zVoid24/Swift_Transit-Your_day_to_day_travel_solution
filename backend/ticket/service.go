@@ -67,8 +67,13 @@ func (s *service) BuyTicket(req BuyTicketRequest) (*BuyTicketResponse, error) {
 		return nil, fmt.Errorf("failed to check existing tickets: %w", err)
 	}
 
-	if existing+req.Quantity > 4 {
-		return nil, fmt.Errorf("ticket limit reached for this route (max 4) ")
+	if existing >= 4 {
+		return nil, fmt.Errorf("ticket limit reached for this route (max 4 active tickets)")
+	}
+
+	remaining := 4 - existing
+	if req.Quantity > remaining {
+		return nil, fmt.Errorf("you already have %d active ticket(s) on this route. You can buy up to %d more for this route", existing, remaining)
 	}
 
 	batchID := uuid.New().String()

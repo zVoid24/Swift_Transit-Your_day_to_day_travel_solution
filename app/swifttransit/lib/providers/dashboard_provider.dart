@@ -40,6 +40,13 @@ class DashboardProvider extends ChangeNotifier {
   List<Map<String, dynamic>> availableBuses = [];
   int? selectedBusIndex;
 
+  // Route search (by bus/route name)
+  List<Map<String, dynamic>> searchedRoutes = [];
+  Map<String, dynamic>? selectedRoute;
+  List<LatLng> selectedRoutePoints = [];
+  List<Marker> selectedRouteMarkers = [];
+  bool isSearchingRoutes = false;
+
   List<dynamic> tickets = [];
   bool isLoadingTickets = false;
   bool isLoadingMoreTickets = false;
@@ -313,46 +320,10 @@ class DashboardProvider extends ChangeNotifier {
     currentRouteId = (bus['id'] as num?)?.toInt();
     currentBusName = bus['name']?.toString() ?? "Swift Bus";
 
-    final geometry = bus['linestring_geojson'];
-    List<dynamic> coordinates = [];
-    if (geometry is String && geometry.isNotEmpty) {
-      final geoJson = jsonDecode(geometry);
-      coordinates = geoJson['coordinates'] ?? [];
-    } else if (geometry is Map<String, dynamic>) {
-      coordinates = geometry['coordinates'] ?? [];
-    }
-
-    routePoints = coordinates
-        .whereType<List>()
-        .map<LatLng?>((coord) {
-          if (coord.length < 2) return null;
-          final lon = coord[0];
-          final lat = coord[1];
-          if (lon is num && lat is num) {
-            return LatLng(lat.toDouble(), lon.toDouble());
-          }
-          return null;
-        })
-        .whereType<LatLng>()
-        .toList();
+    routePoints = _extractRoutePoints(bus['linestring_geojson']);
 
     final stops = (bus['stops'] as List?) ?? [];
-    markers = stops
-        .map<Marker?>((stop) {
-          final lat = stop['lat'];
-          final lon = stop['lon'];
-          if (lat is num && lon is num) {
-            return Marker(
-              point: LatLng(lat.toDouble(), lon.toDouble()),
-              width: 40,
-              height: 40,
-              child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-            );
-          }
-          return null;
-        })
-        .whereType<Marker>()
-        .toList();
+    markers = _buildMarkersFromStops(stops);
 
     notifyListeners();
   }
@@ -383,6 +354,65 @@ class DashboardProvider extends ChangeNotifier {
     final fare = availableBuses[selectedBusIndex!]['fare'];
     if (fare is num) return fare.toDouble();
     return double.tryParse(fare?.toString() ?? '');
+  }
+
+  List<LatLng> _extractRoutePoints(dynamic geometry) {
+    List<dynamic> coordinates = [];
+    try {
+      if (geometry is String && geometry.isNotEmpty) {
+        final geoJson = jsonDecode(geometry);
+        coordinates = geoJson['coordinates'] ?? [];
+      } else if (geometry is Map<String, dynamic>) {
+        coordinates = geometry['coordinates'] ?? [];
+      }
+    } catch (e) {
+      debugPrint('Failed to parse route geometry: $e');
+    }
+
+    return coordinates
+        .whereType<List>()
+        .map<LatLng?>((coord) {
+          if (coord.length < 2) return null;
+          final lon = coord[0];
+          final lat = coord[1];
+          if (lon is num && lat is num) {
+            return LatLng(lat.toDouble(), lon.toDouble());
+          }
+          return null;
+        })
+        .whereType<LatLng>()
+        .toList();
+  }
+
+  List<Marker> _buildMarkersFromStops(List<dynamic> stops) {
+    return stops
+        .map<Marker?>((stop) {
+          final lat = stop['lat'];
+          final lon = stop['lon'];
+          if (lat is num && lon is num) {
+            return Marker(
+              point: LatLng(lat.toDouble(), lon.toDouble()),
+              width: 40,
+              height: 40,
+              child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+            );
+          }
+          return null;
+        })
+        .whereType<Marker>()
+        .toList();
+  }
+
+  void _applySelectedRoute(int index, {bool shouldNotify = true}) {
+    if (index < 0 || index >= searchedRoutes.length) return;
+
+    selectedRoute = searchedRoutes[index];
+    selectedRoutePoints =
+        _extractRoutePoints(selectedRoute?['linestring_geojson']);
+    final stops = (selectedRoute?['stops'] as List?) ?? [];
+    selectedRouteMarkers = _buildMarkersFromStops(stops);
+
+    if (shouldNotify) notifyListeners();
   }
 
   /// Buy ticket - returns true when a payment flow finishes successfully
@@ -681,6 +711,75 @@ class DashboardProvider extends ChangeNotifier {
       debugPrint("Error searching stops: $e");
     }
     return [];
+  }
+
+  Future<void> searchRoutesByName(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      searchedRoutes = [];
+      selectedRoute = null;
+      selectedRoutePoints = [];
+      selectedRouteMarkers = [];
+      notifyListeners();
+      return;
+    }
+
+    isSearchingRoutes = true;
+    notifyListeners();
+
+    try {
+      final uri = Uri.parse('${AppConstants.baseUrl}/route/search')
+          .replace(queryParameters: {'name': trimmed});
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        List<Map<String, dynamic>> routes = [];
+        if (data is List) {
+          routes = data.whereType<Map<String, dynamic>>().toList();
+        } else if (data is Map<String, dynamic>) {
+          final items = data['data'];
+          if (items is List) {
+            routes = items.whereType<Map<String, dynamic>>().toList();
+          }
+        }
+
+        searchedRoutes = routes;
+        if (routes.isNotEmpty) {
+          _applySelectedRoute(0, shouldNotify: false);
+        } else {
+          selectedRoute = null;
+          selectedRoutePoints = [];
+          selectedRouteMarkers = [];
+        }
+      } else {
+        debugPrint(
+            'Failed to search routes by name: ${response.statusCode} ${response.body}');
+        searchedRoutes = [];
+        selectedRoute = null;
+        selectedRoutePoints = [];
+        selectedRouteMarkers = [];
+      }
+    } catch (e) {
+      debugPrint('Error searching routes by name: $e');
+      searchedRoutes = [];
+      selectedRoute = null;
+      selectedRoutePoints = [];
+      selectedRouteMarkers = [];
+    } finally {
+      isSearchingRoutes = false;
+      notifyListeners();
+    }
+  }
+
+  void selectSearchedRoute(int index) {
+    _applySelectedRoute(index);
   }
 
   Future<bool> downloadTicket(String url) async {
