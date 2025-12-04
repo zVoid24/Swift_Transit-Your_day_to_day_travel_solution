@@ -2,6 +2,7 @@ package ticket
 
 import (
 	"net/http"
+	"strconv"
 )
 
 func (h *Handler) GetTickets(w http.ResponseWriter, r *http.Request) {
@@ -27,11 +28,33 @@ func (h *Handler) GetTickets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tickets, err := h.svc.GetByUserID(userId)
+	page := 1
+	limit := 10
+
+	if p := r.URL.Query().Get("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+
+	offset := (page - 1) * limit
+
+	tickets, total, err := h.svc.GetByUserID(userId, limit, offset)
 	if err != nil {
 		h.utilHandler.SendError(w, "Failed to fetch tickets", http.StatusInternalServerError)
 		return
 	}
 
-	h.utilHandler.SendData(w, tickets, http.StatusOK)
+	h.utilHandler.SendData(w, map[string]any{
+		"data":  tickets,
+		"page":  page,
+		"limit": limit,
+		"total": total,
+	}, http.StatusOK)
 }

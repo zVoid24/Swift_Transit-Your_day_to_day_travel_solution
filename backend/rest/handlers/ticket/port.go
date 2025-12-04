@@ -11,5 +11,5 @@ type Service interface {
 	GetTicketStatus(trackingID string) (*ticket.BuyTicketResponse, error)
 	DownloadTicket(id int64) ([]byte, error)
 	ValidatePayment(valID string, tranID string, amount float64) (bool, error)
-	GetByUserID(userId int64) ([]domain.Ticket, error)
+	GetByUserID(userId int64, limit, offset int) ([]domain.Ticket, int, error)
 }

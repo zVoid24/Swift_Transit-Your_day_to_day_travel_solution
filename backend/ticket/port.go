@@ -37,7 +37,7 @@ type Service interface {
 	DownloadTicket(id int64) ([]byte, error)
 	GetTicketStatus(trackingID string) (*BuyTicketResponse, error)
 	ValidatePayment(valID string, tranID string, amount float64) (bool, error)
-	GetByUserID(userId int64) ([]domain.Ticket, error)
+	GetByUserID(userId int64, limit, offset int) ([]domain.Ticket, int, error)
 	ValidateTicket(id int64) error
 }
 
@@ -46,6 +46,6 @@ type TicketRepo interface {
 	UpdateStatus(id int64, status bool) error
 	Get(id int64) (*domain.Ticket, error)
 	CalculateFare(routeId int64, start, end string) (float64, error)
-	GetByUserID(userId int64) ([]domain.Ticket, error)
+	GetByUserID(userId int64, limit, offset int) ([]domain.Ticket, int, error)
 	ValidateTicket(id int64) error
 }

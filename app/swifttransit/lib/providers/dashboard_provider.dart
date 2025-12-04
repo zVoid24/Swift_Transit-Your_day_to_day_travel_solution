@@ -37,6 +37,11 @@ class DashboardProvider extends ChangeNotifier {
 
   List<dynamic> tickets = [];
   bool isLoadingTickets = false;
+  bool isLoadingMoreTickets = false;
+  int ticketPage = 1;
+  int ticketLimit = 10;
+  int totalTickets = 0;
+  bool hasMoreTickets = true;
 
   // flags
   bool _isRefreshing = false;
@@ -44,6 +49,53 @@ class DashboardProvider extends ChangeNotifier {
 
   bool get isRefreshing => _isRefreshing;
   bool get isRecharging => _isRecharging;
+
+  Map<String, dynamic>? get activeTicket {
+    for (final ticket in tickets) {
+      if (ticket is Map<String, dynamic>) {
+        final paid = ticket['paid_status'] == true;
+        final checked = ticket['checked'] == true;
+        if (paid && !checked) {
+          return ticket;
+        }
+      }
+    }
+    return null;
+  }
+
+  List<Map<String, dynamic>> get dashboardTickets {
+    final sorted = tickets
+        .whereType<Map<String, dynamic>>()
+        .toList()
+      ..sort((a, b) {
+        final dateA = DateTime.tryParse(a['created_at'] ?? '')?.millisecondsSinceEpoch ?? 0;
+        final dateB = DateTime.tryParse(b['created_at'] ?? '')?.millisecondsSinceEpoch ?? 0;
+        return dateB.compareTo(dateA);
+      });
+
+    final result = <Map<String, dynamic>>[];
+    final seenIds = <int>{};
+
+    final active = sorted.firstWhere(
+      (t) => t['paid_status'] == true && t['checked'] != true,
+      orElse: () => {},
+    );
+
+    if (active.isNotEmpty) {
+      result.add(active);
+      final id = (active['id'] as num?)?.toInt();
+      if (id != null) seenIds.add(id);
+    }
+
+    for (final ticket in sorted) {
+      final id = (ticket['id'] as num?)?.toInt();
+      if (id != null && seenIds.contains(id)) continue;
+      result.add(ticket);
+      if (result.length >= (active.isNotEmpty ? 3 : 2)) break;
+    }
+
+    return result;
+  }
 
   final quotes = [
     "Safe journeys begin with patience and careful planning.",
@@ -440,21 +492,40 @@ class DashboardProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchTickets() async {
-    isLoadingTickets = true;
+  Future<void> fetchTickets({
+    int page = 1,
+    int? limit,
+    bool append = false,
+  }) async {
+    if (append) {
+      isLoadingMoreTickets = true;
+    } else {
+      isLoadingTickets = true;
+    }
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
     final jwt = prefs.getString('jwt');
     if (jwt == null) {
       isLoadingTickets = false;
+      isLoadingMoreTickets = false;
+      hasMoreTickets = false;
       notifyListeners();
       return;
     }
 
+    final effectiveLimit = limit ?? ticketLimit;
+
     try {
+      final uri = Uri.parse('${AppConstants.baseUrl}/ticket').replace(
+        queryParameters: {
+          'page': page.toString(),
+          'limit': effectiveLimit.toString(),
+        },
+      );
+
       final response = await http.get(
-        Uri.parse('${AppConstants.baseUrl}/ticket'),
+        uri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $jwt',
@@ -463,14 +534,31 @@ class DashboardProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        tickets = data != null ? List.from(data) : [];
+        final items = data is Map<String, dynamic>
+            ? List.from(data['data'] ?? [])
+            : (data != null ? List.from(data) : <dynamic>[]);
+
+        if (append) {
+          tickets.addAll(items);
+        } else {
+          tickets = items;
+        }
+
+        totalTickets = (data is Map<String, dynamic>)
+            ? (data['total'] as int? ?? tickets.length)
+            : tickets.length;
+        ticketPage = page;
+        ticketLimit = effectiveLimit;
+        hasMoreTickets = tickets.length < totalTickets;
       } else {
         debugPrint("Failed to fetch tickets: ${response.statusCode}");
+        hasMoreTickets = false;
       }
     } catch (e) {
       debugPrint("Error fetching tickets: $e");
     } finally {
       isLoadingTickets = false;
+      isLoadingMoreTickets = false;
       notifyListeners();
     }
   }

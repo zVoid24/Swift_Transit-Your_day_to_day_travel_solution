@@ -10,6 +10,8 @@ import '../profile/profile_screen.dart';
 import '../search/search_screen.dart';
 import '../ticket/buy_ticket_screen.dart';
 import '../ticket/live_bus_location_screen.dart';
+import '../ticket/ticket_list_screen.dart';
+import '../../widgets/app_bottom_nav.dart';
 
 const double _kCorner = 16.0;
 
@@ -31,6 +33,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  void _handleBottomNav(BuildContext context, int index) {
+    switch (index) {
+      case 0:
+        return;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SearchScreen()),
+        );
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const TicketListScreen()),
+        );
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const DemoProfileScreen()),
+        );
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -40,7 +67,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             _DashboardContent(),
             Positioned(left: 0, right: 0, bottom: 72, child: _FixedAdBar()),
-            Positioned(left: 0, right: 0, bottom: 0, child: _AppBottomNav()),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: AppBottomNav(
+                currentIndex: 0,
+                onItemSelected: (index) => _handleBottomNav(context, index),
+              ),
+            ),
           ],
         ),
       ),
@@ -463,17 +498,7 @@ class _ServiceSelector extends StatelessWidget {
         _tile(context, 'Track Bus', Icons.track_changes, () {
           final provider =
               Provider.of<DashboardProvider>(context, listen: false);
-          Map<String, dynamic>? active;
-          for (final ticket in provider.tickets) {
-            if (ticket is Map<String, dynamic>) {
-              final paid = ticket['paid_status'] == true;
-              final checked = ticket['checked'] == true;
-              if (paid && !checked) {
-                active = ticket;
-                break;
-              }
-            }
-          }
+          final active = provider.activeTicket;
 
           if (active == null) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -532,14 +557,24 @@ class _MyTicketCardState extends State<_MyTicketCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: [
-              const Expanded(
-                child: Text(
+              children: [
+                const Expanded(
+                  child: Text(
                   'My Ticket',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                 ),
               ),
-              TextButton(onPressed: () {}, child: const Text('See All')),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const TicketListScreen(),
+                    ),
+                  );
+                },
+                child: const Text('See All'),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -603,7 +638,8 @@ class _MyTicketCardState extends State<_MyTicketCard> {
     if (provider.isLoadingTickets) {
       return [const Center(child: CircularProgressIndicator())];
     }
-    if (provider.tickets.isEmpty) {
+    final dashboardTickets = provider.dashboardTickets;
+    if (dashboardTickets.isEmpty) {
       return [
         const Padding(
           padding: EdgeInsets.all(8),
@@ -611,7 +647,7 @@ class _MyTicketCardState extends State<_MyTicketCard> {
         ),
       ];
     }
-    return provider.tickets.map((t) {
+    return dashboardTickets.map((t) {
       final paid = t['paid_status'] == true;
       final checked = t['checked'] == true;
       final canTrack = paid && !checked;
@@ -960,66 +996,3 @@ class _FixedAdBar extends StatelessWidget {
   }
 }
 
-class _AppBottomNav extends StatelessWidget {
-  const _AppBottomNav({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.only(top: 8, bottom: 8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(height: 1, color: Colors.grey.shade100),
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0, bottom: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _NavItem(icon: Icons.home, label: 'Home', active: true),
-                _NavItem(icon: Icons.search, label: 'Search', active: false),
-                _NavItem(
-                  icon: Icons.confirmation_num,
-                  label: 'My Ticket',
-                  active: false,
-                ),
-                _NavItem(icon: Icons.person, label: 'Account', active: false),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool active;
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.active,
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: active ? AppColors.primary : Colors.grey.shade400),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: active ? AppColors.primary : Colors.grey.shade400,
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
-}

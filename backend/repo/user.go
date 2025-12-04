@@ -34,21 +34,26 @@ func (r *userRepo) Info(ctx context.Context) (*domain.User, error) {
 	// Extract the user data from context
 	userData := r.utilHandler.GetUserFromContext(ctx)
 
-	// Assert it’s a map[string]interface{} (how JSON was unmarshaled)
-	dataMap, ok := userData.(map[string]interface{})
-	if !ok {
+	// Accept either raw ID or the claims map
+	var userID int64
+	switch v := userData.(type) {
+	case float64:
+		userID = int64(v)
+	case map[string]interface{}:
+		if id, ok := v["id"].(float64); ok {
+			userID = int64(id)
+		}
+	}
+
+	if userID == 0 {
 		return nil, fmt.Errorf("invalid user data format")
 	}
 
-	// Convert map fields into domain.User
-	user := &domain.User{
-		Id:        int64(dataMap["id"].(float64)), // JSON numbers become float64
-		Name:      dataMap["name"].(string),
-		Mobile:    dataMap["mobile"].(string),
-		NID:       dataMap["nid"].(string),
-		Email:     dataMap["email"].(string),
-		IsStudent: dataMap["is_student"].(bool),
-		Balance:   float32(dataMap["balance"].(float64)), // convert float64 → float32
+	// Always fetch the latest record from DB to avoid stale balance from JWT claims
+	user := &domain.User{}
+	query := `SELECT id, name, mobile, nid, email, is_student, balance FROM users WHERE id = $1`
+	if err := r.dbCon.Get(user, query, userID); err != nil {
+		return nil, err
 	}
 
 	return user, nil

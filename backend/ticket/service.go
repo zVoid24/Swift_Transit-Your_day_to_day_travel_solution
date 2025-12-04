@@ -232,6 +232,6 @@ func (s *service) DownloadTicket(id int64) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (s *service) GetByUserID(userId int64) ([]domain.Ticket, error) {
-	return s.repo.GetByUserID(userId)
+func (s *service) GetByUserID(userId int64, limit, offset int) ([]domain.Ticket, int, error) {
+	return s.repo.GetByUserID(userId, limit, offset)
 }
