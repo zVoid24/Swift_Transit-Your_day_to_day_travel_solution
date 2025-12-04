@@ -412,7 +412,7 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           child: InkWell(
-            onTap: () => provider.buyTicket(context, paymentMethod: "balance"),
+            onTap: () => provider.buyTicket(context, paymentMethod: "wallet"),
             borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.all(16),

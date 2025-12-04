@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"swift_transit/domain"
 	"swift_transit/infra/payment"
 	"swift_transit/infra/rabbitmq"
@@ -20,22 +21,24 @@ import (
 )
 
 type service struct {
-	repo       TicketRepo
-	userRepo   user.UserRepo
-	redis      *redis.Client
-	sslCommerz *payment.SSLCommerz
-	rabbitMQ   *rabbitmq.RabbitMQ
-	ctx        context.Context
+	repo          TicketRepo
+	userRepo      user.UserRepo
+	redis         *redis.Client
+	sslCommerz    *payment.SSLCommerz
+	rabbitMQ      *rabbitmq.RabbitMQ
+	ctx           context.Context
+	publicBaseURL string
 }
 
-func NewService(repo TicketRepo, userRepo user.UserRepo, redis *redis.Client, sslCommerz *payment.SSLCommerz, rabbitMQ *rabbitmq.RabbitMQ, ctx context.Context) Service {
+func NewService(repo TicketRepo, userRepo user.UserRepo, redis *redis.Client, sslCommerz *payment.SSLCommerz, rabbitMQ *rabbitmq.RabbitMQ, ctx context.Context, publicBaseURL string) Service {
 	return &service{
-		repo:       repo,
-		userRepo:   userRepo,
-		redis:      redis,
-		sslCommerz: sslCommerz,
-		rabbitMQ:   rabbitMQ,
-		ctx:        ctx,
+		repo:          repo,
+		userRepo:      userRepo,
+		redis:         redis,
+		sslCommerz:    sslCommerz,
+		rabbitMQ:      rabbitMQ,
+		ctx:           ctx,
+		publicBaseURL: strings.TrimRight(publicBaseURL, "/"),
 	}
 }
 

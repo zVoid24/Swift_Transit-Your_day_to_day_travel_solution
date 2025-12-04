@@ -35,14 +35,15 @@ type RabbitMQConfig struct {
 }
 
 type Config struct {
-	Version     string
-	HttpPort    string
-	ServiceName string
-	Secret      string
-	Db          DbConfig
-	RedisCnf    RedisConfig
-	SSLCommerz  SSLCommerzConfig
-	RabbitMQ    RabbitMQConfig
+	Version       string
+	HttpPort      string
+	ServiceName   string
+	Secret        string
+	PublicBaseURL string
+	Db            DbConfig
+	RedisCnf      RedisConfig
+	SSLCommerz    SSLCommerzConfig
+	RabbitMQ      RabbitMQConfig
 }
 
 var configurations *Config
@@ -100,11 +101,17 @@ func loadConfig() {
 		os.Exit(1)
 	}
 
+	publicBaseURL := os.Getenv("PUBLIC_BASE_URL")
+	if publicBaseURL == "" {
+		publicBaseURL = fmt.Sprintf("http://localhost:%s", httpPort)
+	}
+
 	configurations = &Config{
-		Version:     version,
-		HttpPort:    httpPort,
-		ServiceName: serviceName,
-		Secret:      secret,
+		Version:       version,
+		HttpPort:      httpPort,
+		ServiceName:   serviceName,
+		Secret:        secret,
+		PublicBaseURL: publicBaseURL,
 		Db: DbConfig{
 			Host:          host,
 			User:          user,

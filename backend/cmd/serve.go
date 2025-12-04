@@ -73,7 +73,7 @@ func Start() {
 	}
 	defer rabbitMQ.Close()
 
-	ticketSvc := ticket.NewService(ticketRepo, userRepo, redisCon, sslCommerz, rabbitMQ, ctx)
+	ticketSvc := ticket.NewService(ticketRepo, userRepo, redisCon, sslCommerz, rabbitMQ, ctx, cnf.PublicBaseURL)
 
 	// Start Ticket Worker
 	ticketWorker := ticket.NewTicketWorker(ticketSvc, rabbitMQ)

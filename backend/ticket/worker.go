@@ -90,6 +90,8 @@ func (w *TicketWorker) ProcessTicket(req TicketRequestMessage, trackingID string
 		return
 	}
 
+	baseURL := s.publicBaseURL
+
 	qrCode := uuid.New().String()
 	now := time.Now().Format(time.RFC3339)
 
@@ -144,9 +146,9 @@ func (w *TicketWorker) ProcessTicket(req TicketRequestMessage, trackingID string
 	} else {
 		// Init SSLCommerz
 		tranID := fmt.Sprintf("TICKET-%d-%s", createdTicket.Id, uuid.New().String()[:8])
-		successUrl := fmt.Sprintf("http://localhost:8080/ticket/payment/success?id=%d", createdTicket.Id)
-		failUrl := "http://localhost:8080/ticket/payment/fail"
-		cancelUrl := "http://localhost:8080/ticket/payment/cancel"
+		successUrl := fmt.Sprintf("%s/ticket/payment/success?id=%d", baseURL, createdTicket.Id)
+		failUrl := fmt.Sprintf("%s/ticket/payment/fail", baseURL)
+		cancelUrl := fmt.Sprintf("%s/ticket/payment/cancel", baseURL)
 
 		gatewayUrl, err := s.sslCommerz.InitPayment(req.Fare, tranID, successUrl, failUrl, cancelUrl)
 		if err != nil {

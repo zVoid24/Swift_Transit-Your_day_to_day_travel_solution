@@ -9,6 +9,7 @@ import '../../providers/dashboard_provider.dart';
 import '../profile/profile_screen.dart';
 import '../search/search_screen.dart';
 import '../ticket/buy_ticket_screen.dart';
+import '../ticket/live_bus_location_screen.dart';
 
 const double _kCorner = 16.0;
 
@@ -54,45 +55,55 @@ class _DashboardContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 144.0),
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _TopHeader(),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _BalanceCard(),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _ProfileUpdateCard(),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _ServiceSelector(),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _MyTicketCard(),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _PreviousTripsSection(
-                hasPrevious: false,
-              ), // static: no previous trips
-            ),
-            const SizedBox(height: 24),
-          ],
+      child: RefreshIndicator(
+        onRefresh: () async {
+          final dashboardProvider =
+              Provider.of<DashboardProvider>(context, listen: false);
+          await dashboardProvider.fetchUserInfo();
+          await dashboardProvider.fetchTickets();
+        },
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _TopHeader(),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _BalanceCard(),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _ProfileUpdateCard(),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _ServiceSelector(),
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _MyTicketCard(),
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _PreviousTripsSection(
+                  hasPrevious: false,
+                ), // static: no previous trips
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
@@ -449,7 +460,42 @@ class _ServiceSelector extends StatelessWidget {
             MaterialPageRoute(builder: (_) => const BuyTicketScreen()),
           );
         }),
-        _tile(context, 'Track Bus', Icons.track_changes, () {}),
+        _tile(context, 'Track Bus', Icons.track_changes, () {
+          final provider =
+              Provider.of<DashboardProvider>(context, listen: false);
+          Map<String, dynamic>? active;
+          for (final ticket in provider.tickets) {
+            if (ticket is Map<String, dynamic>) {
+              final paid = ticket['paid_status'] == true;
+              final checked = ticket['checked'] == true;
+              if (paid && !checked) {
+                active = ticket;
+                break;
+              }
+            }
+          }
+
+          if (active == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No active tickets to track right now.'),
+              ),
+            );
+            return;
+          }
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => LiveBusLocationScreen(
+                routeId: (active['route_id'] as num).toInt(),
+                title:
+                    '${active['start_destination']} → ${active['end_destination']}',
+                busName: active['bus_name'],
+              ),
+            ),
+          );
+        }),
       ],
     );
   }
@@ -566,13 +612,34 @@ class _MyTicketCardState extends State<_MyTicketCard> {
       ];
     }
     return provider.tickets.map((t) {
+      final paid = t['paid_status'] == true;
+      final checked = t['checked'] == true;
+      final canTrack = paid && !checked;
+      final statusLabel = canTrack ? 'Upcoming' : (paid ? 'Paid' : 'Unpaid');
+
       return Column(
         children: [
           const SizedBox(height: 8),
           _TicketRow(
             title: '${t['start_destination']} → ${t['end_destination']}',
             subtitle: '${t['created_at']} • ৳${t['fare']}',
-            status: t['paid_status'] ? 'Paid' : 'Unpaid',
+            status: statusLabel,
+            canTrack: canTrack,
+            onTrack: canTrack
+                ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => LiveBusLocationScreen(
+                          routeId: (t['route_id'] as num).toInt(),
+                          title:
+                              '${t['start_destination']} → ${t['end_destination']}',
+                          busName: t['bus_name'],
+                        ),
+                      ),
+                    );
+                  }
+                : null,
           ),
         ],
       );
@@ -602,11 +669,15 @@ class _TicketRow extends StatelessWidget {
   final String title;
   final String subtitle;
   final String status;
+  final VoidCallback? onTrack;
+  final bool canTrack;
 
   const _TicketRow({
     required this.title,
     required this.subtitle,
     required this.status,
+    this.onTrack,
+    this.canTrack = false,
     Key? key,
   }) : super(key: key);
 
@@ -658,20 +729,36 @@ class _TicketRow extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: pillColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                color: pillColor,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: pillColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    color: pillColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
               ),
-            ),
+              if (canTrack) ...[
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: onTrack,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(80, 36),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                  child: const Text('Track'),
+                ),
+              ],
+            ],
           ),
         ],
       ),

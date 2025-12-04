@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../screens/ticket/payment_webview_screen.dart';
 import '../core/constants.dart';
 
 class DashboardProvider extends ChangeNotifier {
@@ -197,7 +197,7 @@ class DashboardProvider extends ChangeNotifier {
 
     try {
       final response = await http.post(
-        Uri.parse('${AppConstants.baseUrl}/bus/get'),
+        Uri.parse('${AppConstants.baseUrl}/bus/find'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'start_destination': selectedDeparture,
@@ -297,6 +297,8 @@ class DashboardProvider extends ChangeNotifier {
     final userId = user['id'];
 
     try {
+      final normalizedMethod =
+          paymentMethod.toLowerCase() == 'wallet' ? 'wallet' : 'gateway';
       final response = await http.post(
         Uri.parse('${AppConstants.baseUrl}/ticket/buy'),
         headers: {
@@ -309,27 +311,25 @@ class DashboardProvider extends ChangeNotifier {
           'bus_name': currentBusName ?? "Swift Bus",
           'start_destination': selectedDeparture,
           'end_destination': selectedDestination,
-          'payment_method': paymentMethod,
+          'payment_method': normalizedMethod,
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final paymentUrl = data['payment_url'];
-
-        // Wait for payment URL if it's processing
-        if (paymentUrl == "" || paymentUrl == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Processing ticket request... Please wait or check status later.",
-              ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Processing ticket request... Please wait for confirmation.",
             ),
-          );
-          _pollTicketStatus(context, data['tracking_id']);
-        } else {
-          _launchPaymentUrl(paymentUrl);
-        }
+          ),
+        );
+
+        await _pollTicketStatus(
+          context,
+          data['tracking_id'],
+          normalizedMethod,
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Failed to buy ticket: ${response.body}")),
@@ -346,6 +346,7 @@ class DashboardProvider extends ChangeNotifier {
   Future<void> _pollTicketStatus(
     BuildContext context,
     String trackingId,
+    String paymentMethod,
   ) async {
     final prefs = await SharedPreferences.getInstance();
     final jwt = prefs.getString('jwt');
@@ -363,10 +364,32 @@ class DashboardProvider extends ChangeNotifier {
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
-          if (data['payment_url'] != null && data['payment_url'] != "") {
-            _launchPaymentUrl(data['payment_url']);
+          final paymentUrl = (data['payment_url'] ?? '') as String;
+          if (paymentUrl.isEmpty) {
+            attempts++;
+            continue;
+          }
+
+          if (paymentUrl == 'failed') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Ticket request failed.')),
+            );
             return;
           }
+
+          if (paymentMethod == 'wallet') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Ticket purchased with wallet.')),
+            );
+            await fetchUserInfo();
+            await fetchTickets();
+            return;
+          }
+
+          await _openGatewayCheckout(context, paymentUrl);
+          await fetchTickets();
+          await fetchUserInfo();
+          return;
         }
       } catch (e) {
         debugPrint("Polling error: $e");
@@ -383,13 +406,27 @@ class DashboardProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> _launchPaymentUrl(String url) async {
-    if (!await launchUrl(
-      Uri.parse(url),
-      mode: LaunchMode.externalApplication,
-    )) {
-      throw Exception('Could not launch $url');
-    }
+  Future<void> _openGatewayCheckout(
+    BuildContext context,
+    String url,
+  ) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PaymentWebViewScreen(
+          paymentUrl: url,
+          onSuccess: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Payment completed successfully.')),
+            );
+          },
+          onFailure: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Payment cancelled or failed.')),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   // Testing utilities
