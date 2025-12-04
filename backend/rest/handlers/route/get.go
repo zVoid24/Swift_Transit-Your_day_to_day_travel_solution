@@ -6,6 +6,18 @@ import (
 )
 
 func (h *Handler) SearchRoute(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if name != "" {
+		routes, err := h.svc.SearchByName(name)
+		if err != nil {
+			h.utilHandler.SendError(w, "failed to search routes", http.StatusInternalServerError)
+			return
+		}
+
+		h.utilHandler.SendData(w, routes, http.StatusOK)
+		return
+	}
+
 	start := r.URL.Query().Get("start")
 	end := r.URL.Query().Get("end")
 

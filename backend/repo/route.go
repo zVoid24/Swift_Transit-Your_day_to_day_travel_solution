@@ -13,6 +13,7 @@ import (
 type RouteRepo interface {
 	route.RouteRepo
 	FindRoute(start, end string) (*domain.Route, error)
+	SearchByName(query string) ([]domain.Route, error)
 	SearchStops(query string) ([]string, error)
 }
 
@@ -142,6 +143,51 @@ func (r *routeRepo) FindRoute(start, end string) (*domain.Route, error) {
 	route.Stops = stops
 
 	return &route, nil
+}
+
+func (r *routeRepo) SearchByName(query string) ([]domain.Route, error) {
+	var routes []domain.Route
+	searchQuery := `
+SELECT id, name, ST_AsGeoJSON(geom) as linestring_geojson
+FROM routes
+WHERE name ILIKE $1
+ORDER BY name
+LIMIT 20
+`
+	if err := r.dbCon.Select(&routes, searchQuery, "%"+query+"%"); err != nil {
+		return nil, err
+	}
+
+	if len(routes) == 0 {
+		return routes, nil
+	}
+
+	var routeIDs []int64
+	for _, rt := range routes {
+		routeIDs = append(routeIDs, rt.Id)
+	}
+
+	stopQuery := `
+SELECT id, route_id, stop_order, name, ST_X(geom::geometry) as lon, ST_Y(geom::geometry) as lat
+FROM stops
+WHERE route_id = ANY($1)
+ORDER BY stop_order
+`
+	var stops []domain.Stop
+	if err := r.dbCon.Select(&stops, stopQuery, pq.Array(routeIDs)); err != nil {
+		return nil, err
+	}
+
+	stopMap := make(map[int64][]domain.Stop)
+	for _, stop := range stops {
+		stopMap[stop.RouteId] = append(stopMap[stop.RouteId], stop)
+	}
+
+	for i := range routes {
+		routes[i].Stops = stopMap[routes[i].Id]
+	}
+
+	return routes, nil
 }
 
 func (r *routeRepo) SearchStops(query string) ([]string, error) {

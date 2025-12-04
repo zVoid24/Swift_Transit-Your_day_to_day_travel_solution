@@ -33,3 +33,7 @@ func (svc *service) FindRoute(start, end string) (*domain.Route, error) {
 func (svc *service) SearchStops(query string) ([]string, error) {
 	return svc.repo.SearchStops(query)
 }
+
+func (svc *service) SearchByName(query string) ([]domain.Route, error) {
+	return svc.repo.SearchByName(query)
+}
