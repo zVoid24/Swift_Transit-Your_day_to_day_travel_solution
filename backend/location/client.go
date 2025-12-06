@@ -1,6 +1,7 @@
 package location
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -52,13 +53,26 @@ func (c *Client) readPump() {
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-		_, _, err := c.conn.ReadMessage()
+		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}
 			break
 		}
+
+		var update LocationUpdate
+		if err := json.Unmarshal(message, &update); err != nil {
+			log.Printf("invalid location payload: %v", err)
+			continue
+		}
+
+		// Default to the subscribed route when the sender omits route_id
+		if update.RouteID == 0 {
+			update.RouteID = c.routeID
+		}
+
+		c.hub.BroadcastLocation(update)
 	}
 }
 
