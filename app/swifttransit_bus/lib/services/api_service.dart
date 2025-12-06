@@ -75,8 +75,9 @@ class ApiService {
     if (response.statusCode != 200) {
       throw Exception('Route fetch failed (${response.statusCode})');
     }
-
+    print(response.body);
     final data = jsonDecode(response.body) as Map<String, dynamic>;
+    print("Dataaaaaaaaaaaaaaa: $data");
     return BusRoute.fromJson(data);
   }
 
@@ -85,6 +86,7 @@ class ApiService {
     required String token,
     required int routeId,
     required String currentStop,
+    required int currentStopOrder,
   }) async {
     final uri = Uri.parse('$baseUrl/bus/check-ticket');
     final response = await http.post(
@@ -96,7 +98,7 @@ class ApiService {
       body: jsonEncode({
         'qr_code': qrData,
         'route_id': routeId,
-        'current_stoppage': currentStop,
+        'current_stoppage': {"name": currentStop, "order": currentStopOrder},
       }),
     );
 

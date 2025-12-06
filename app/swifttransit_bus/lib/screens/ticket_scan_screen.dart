@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:swifttransit_bus/main.dart';
+import 'package:swifttransit_bus/models/route_models.dart';
 import 'package:swifttransit_bus/services/api_service.dart';
 
 class TicketScanScreen extends StatefulWidget {
@@ -13,7 +14,7 @@ class TicketScanScreen extends StatefulWidget {
 
   final ApiService apiService;
   final SessionData session;
-  final String currentStop;
+  final RouteStop currentStop;
 
   @override
   State<TicketScanScreen> createState() => _TicketScanScreenState();
@@ -51,7 +52,8 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
         qrData: data,
         token: widget.session.token,
         routeId: widget.session.routeId,
-        currentStop: widget.currentStop,
+        currentStop: widget.currentStop.name,
+        currentStopOrder: widget.currentStop.order,
       );
       setState(() {
         _status = result.isValid
@@ -86,7 +88,7 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Current stop: ${widget.currentStop}'),
+                  Text('Current stop: ${widget.currentStop.name}'),
                   const SizedBox(height: 8),
                   if (_status != null) Text(_status!),
                   const SizedBox(height: 12),

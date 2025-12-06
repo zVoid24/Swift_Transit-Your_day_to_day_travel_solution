@@ -19,6 +19,29 @@ class RouteStop {
     required this.polygon,
   });
 
+  factory RouteStop.fromJson(Map<String, dynamic> json) {
+    final areaGeom = json['area_geom'] as Map<String, dynamic>? ?? {};
+    final coordinates = areaGeom['coordinates'] as List<dynamic>? ?? [];
+    final ring = coordinates.isNotEmpty
+        ? coordinates.first as List<dynamic>
+        : [];
+
+    return RouteStop(
+      name: json['name']?.toString() ?? 'Unknown stop',
+      order: (json['order'] ?? 0) is int
+          ? json['order'] as int
+          : int.tryParse(json['order'].toString()) ?? 0,
+      polygon: ring
+          .map(
+            (pair) => LatLng(
+              longitude: (pair[0] as num).toDouble(),
+              latitude: (pair[1] as num).toDouble(),
+            ),
+          )
+          .toList(),
+    );
+  }
+
   factory RouteStop.fromFeature(
     Map<String, dynamic> feature, {
     int? fallbackOrder,
@@ -30,13 +53,17 @@ class RouteStop {
       name: properties['Name']?.toString() ?? 'Unknown stop',
       order: (properties['order'] ?? fallbackOrder ?? 0) is int
           ? (properties['order'] ?? fallbackOrder ?? 0) as int
-          : int.tryParse((properties['order'] ?? fallbackOrder ?? 0).toString()) ??
-              0,
+          : int.tryParse(
+                  (properties['order'] ?? fallbackOrder ?? 0).toString(),
+                ) ??
+                0,
       polygon: ring
-          .map((pair) => LatLng(
-                longitude: (pair[0] as num).toDouble(),
-                latitude: (pair[1] as num).toDouble(),
-              ))
+          .map(
+            (pair) => LatLng(
+              longitude: (pair[0] as num).toDouble(),
+              latitude: (pair[1] as num).toDouble(),
+            ),
+          )
           .toList(),
     );
   }
@@ -50,7 +77,8 @@ class RouteStop {
       final yi = polygon[i].latitude;
       final xj = polygon[j].longitude;
       final yj = polygon[j].latitude;
-      final intersect = ((yi > location.latitude) != (yj > location.latitude)) &&
+      final intersect =
+          ((yi > location.latitude) != (yj > location.latitude)) &&
           (location.longitude <
               (xj - xi) * (location.latitude - yi) / (yj - yi + 0.0) + xi);
       if (intersect) inside = !inside;
@@ -66,7 +94,7 @@ class RouteStop {
     for (int i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
       final double f =
           (polygon[j].longitude * polygon[i].latitude -
-              polygon[i].longitude * polygon[j].latitude);
+          polygon[i].longitude * polygon[j].latitude);
       area += f;
       cx += (polygon[j].longitude + polygon[i].longitude) * f;
       cy += (polygon[j].latitude + polygon[i].latitude) * f;
@@ -83,10 +111,10 @@ class RouteStop {
     final dLon = toRadians(point.longitude - centroid.longitude);
     final a =
         sin(dLat / 2) * sin(dLat / 2) +
-            cos(toRadians(centroid.latitude)) *
-                cos(toRadians(point.latitude)) *
-                sin(dLon / 2) *
-                sin(dLon / 2);
+        cos(toRadians(centroid.latitude)) *
+            cos(toRadians(point.latitude)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return earthRadius * c;
   }
@@ -97,13 +125,26 @@ class BusRoute {
   final List<RouteStop> stops;
   final Map<String, dynamic> raw;
 
-  const BusRoute({
-    required this.name,
-    required this.stops,
-    required this.raw,
-  });
+  const BusRoute({required this.name, required this.stops, required this.raw});
 
   factory BusRoute.fromJson(Map<String, dynamic> json) {
+    // Check for "stops" array first (new format)
+    if (json['stops'] != null) {
+      final stopsList = json['stops'] as List<dynamic>;
+      final stops =
+          stopsList
+              .map((s) => RouteStop.fromJson(s as Map<String, dynamic>))
+              .toList()
+            ..sort((a, b) => a.order.compareTo(b.order));
+
+      return BusRoute(
+        name: json['name']?.toString() ?? 'Unnamed Route',
+        stops: stops,
+        raw: json,
+      );
+    }
+
+    // Fallback to old GeoJSON format
     final features = json['features'] as List<dynamic>? ?? [];
 
     int? parseOrder(dynamic value) {
@@ -132,15 +173,12 @@ class BusRoute {
       return geometry != null && geometry['type'] == 'Polygon';
     }).cast<Map<String, dynamic>>();
 
-    final stops = stopFeatures
-        .map((feature) {
+    final stops = stopFeatures.map((feature) {
       final properties = feature['properties'] as Map<String, dynamic>? ?? {};
       final name = properties['Name']?.toString();
       final fallbackOrder = name != null ? pointOrders[name] : null;
       return RouteStop.fromFeature(feature, fallbackOrder: fallbackOrder);
-    })
-        .toList()
-      ..sort((a, b) => a.order.compareTo(b.order));
+    }).toList()..sort((a, b) => a.order.compareTo(b.order));
 
     return BusRoute(
       name: json['name']?.toString() ?? 'Unnamed Route',

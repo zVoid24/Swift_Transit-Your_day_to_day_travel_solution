@@ -76,7 +76,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	stoppages := []domain.Stop{}
-	for index, feature := range jsonData.Features {
+	stopOrder := 1
+	for _, feature := range jsonData.Features {
 		if feature.Geom.Type == "Point" {
 			if coords, ok := feature.Geom.Coordinates.([]interface{}); ok {
 				lat := math.Round(coords[1].(float64)*100000) / 100000
@@ -84,10 +85,11 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 				stop := domain.Stop{
 					Name:  feature.Properties.Name,
-					Order: index,
+					Order: stopOrder,
 					Lon:   lon,
 					Lat:   lat,
 				}
+				stopOrder++
 
 				// Attach polygon if exists
 				if poly, exists := stopPolygons[feature.Properties.Name]; exists {

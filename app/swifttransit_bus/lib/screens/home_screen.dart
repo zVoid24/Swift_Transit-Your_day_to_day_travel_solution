@@ -95,7 +95,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _handleStopTap(RouteStop stop) async {
     try {
-      final position = _lastPosition ?? await widget.locationService.currentPosition();
+      final position =
+          _lastPosition ?? await widget.locationService.currentPosition();
       _lastPosition = position;
       final isInside = stop.contains(position);
       if (isInside) {
@@ -103,7 +104,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
-      final confirmed = await showDialog<bool>(
+      final confirmed =
+          await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
               title: const Text('Confirm stoppage'),
@@ -153,13 +155,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openScanner() {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => TicketScanScreen(
-        apiService: widget.apiService,
-        session: widget.session,
-        currentStop: _currentStop?.name ?? 'Unknown',
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TicketScanScreen(
+          apiService: widget.apiService,
+          session: widget.session,
+          currentStop:
+              _currentStop ??
+              const RouteStop(name: 'Unknown', order: 0, polygon: []),
+        ),
       ),
-    ));
+    );
   }
 
   @override
@@ -191,51 +197,61 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Bus: ${widget.session.busId}',
-                        style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      'Bus: ${widget.session.busId}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     const SizedBox(height: 8),
                     Text(
-                        'JWT: ${widget.session.token.substring(0, widget.session.token.length > 10 ? 10 : widget.session.token.length)}...'),
+                      'JWT: ${widget.session.token.substring(0, widget.session.token.length > 10 ? 10 : widget.session.token.length)}...',
+                    ),
                     const SizedBox(height: 8),
                     Text('Route ID: ${widget.session.routeId}'),
                     const SizedBox(height: 8),
                     Text('Tracking: ${_tracking ? 'Active' : 'Idle'}'),
                     if (_lastPosition != null)
                       Text(
-                          'Last position: ${_lastPosition!.latitude.toStringAsFixed(5)}, ${_lastPosition!.longitude.toStringAsFixed(5)}'),
-                    Text('Current stoppage: ${_currentStop?.name ?? 'Unknown'}'),
-                    if (_error != null)
-                      Text(
-                        _error!,
-                        style: const TextStyle(color: Colors.red),
+                        'Last position: ${_lastPosition!.latitude.toStringAsFixed(5)}, ${_lastPosition!.longitude.toStringAsFixed(5)}',
                       ),
+                    Text(
+                      'Current stoppage: ${_currentStop?.name ?? 'Unknown'}',
+                    ),
+                    if (_error != null)
+                      Text(_error!, style: const TextStyle(color: Colors.red)),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 12),
-            Text('Upcoming stops', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'All Stoppages',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             Expanded(
-              child: ListView.builder(
-                itemCount: widget.route.stops.length,
-                itemBuilder: (_, index) {
-                  final stop = widget.route.stops[index];
-                  final isCurrent = stop.name == _currentStop?.name;
-                  final isSelected = stop.name == _selectedStop?.name;
-                  return ListTile(
-                    leading: CircleAvatar(child: Text(stop.order.toString())),
-                    title: Text(stop.name),
-                    subtitle: Text('Order ${stop.order}'),
-                    trailing: isCurrent
-                        ? const Icon(Icons.directions_bus)
-                        : (isSelected
-                            ? const Icon(Icons.check_circle_outline)
-                            : null),
-                    onTap: () => _handleStopTap(stop),
-                  );
-                },
-              ),
+              child: widget.route.stops.isEmpty
+                  ? const Center(child: Text('No stops found for this route'))
+                  : ListView.builder(
+                      itemCount: widget.route.stops.length,
+                      itemBuilder: (_, index) {
+                        final stop = widget.route.stops[index];
+                        final isCurrent = stop.name == _currentStop?.name;
+                        final isSelected = stop.name == _selectedStop?.name;
+                        return ListTile(
+                          leading: CircleAvatar(
+                            child: Text(stop.order.toString()),
+                          ),
+                          title: Text(stop.name),
+                          subtitle: Text('Order ${stop.order}'),
+                          trailing: isCurrent
+                              ? const Icon(Icons.directions_bus)
+                              : (isSelected
+                                    ? const Icon(Icons.check_circle_outline)
+                                    : null),
+                          onTap: () => _handleStopTap(stop),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
