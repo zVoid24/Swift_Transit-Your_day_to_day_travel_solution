@@ -45,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _resolver = RouteResolver(route: widget.route);
-    widget.socketService.connect(widget.session.token);
+    widget.socketService.connect(widget.session.token, widget.session.routeId);
     _startTracking();
   }
 
@@ -171,13 +171,36 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text('Route: ${widget.route.name}'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Swift Transit Bus',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Route: ${widget.route.name}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             onPressed: _refreshRoute,
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh route',
+          ),
+          IconButton(
+            onPressed: () {
+              // Add logout logic here if needed
+            },
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
           ),
         ],
       ),
@@ -185,6 +208,8 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: _openScanner,
         icon: const Icon(Icons.qr_code_scanner),
         label: const Text('Scan Ticket'),
+        backgroundColor: const Color(0xFF258BA1),
+        foregroundColor: Colors.white,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -192,42 +217,135 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Bus: ${widget.session.busId}',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Bus Status',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.session.busId,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF258BA1),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _tracking
+                                ? Colors.green[50]
+                                : Colors.orange[50],
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _tracking ? Colors.green : Colors.orange,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _tracking ? Icons.gps_fixed : Icons.gps_off,
+                                size: 16,
+                                color: _tracking ? Colors.green : Colors.orange,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _tracking ? 'Active' : 'Idle',
+                                style: TextStyle(
+                                  color: _tracking
+                                      ? Colors.green[700]
+                                      : Colors.orange[700],
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'JWT: ${widget.session.token.substring(0, widget.session.token.length > 10 ? 10 : widget.session.token.length)}...',
+                    const Divider(height: 24),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 20,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Current Stoppage',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                _currentStop?.name ?? 'Unknown',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text('Route ID: ${widget.session.routeId}'),
-                    const SizedBox(height: 8),
-                    Text('Tracking: ${_tracking ? 'Active' : 'Idle'}'),
-                    if (_lastPosition != null)
+                    if (_lastPosition != null) ...[
+                      const SizedBox(height: 12),
                       Text(
-                        'Last position: ${_lastPosition!.latitude.toStringAsFixed(5)}, ${_lastPosition!.longitude.toStringAsFixed(5)}',
+                        'Lat: ${_lastPosition!.latitude.toStringAsFixed(5)}, Lng: ${_lastPosition!.longitude.toStringAsFixed(5)}',
+                        style: TextStyle(color: Colors.grey[400], fontSize: 10),
                       ),
-                    Text(
-                      'Current stoppage: ${_currentStop?.name ?? 'Unknown'}',
-                    ),
-                    if (_error != null)
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
+                    ],
+                    if (_error != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
             Text(
-              'All Stoppages',
-              style: Theme.of(context).textTheme.titleMedium,
+              'Route Stoppages',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Expanded(
               child: widget.route.stops.isEmpty
                   ? const Center(child: Text('No stops found for this route'))
@@ -237,18 +355,61 @@ class _HomeScreenState extends State<HomeScreen> {
                         final stop = widget.route.stops[index];
                         final isCurrent = stop.name == _currentStop?.name;
                         final isSelected = stop.name == _selectedStop?.name;
-                        return ListTile(
-                          leading: CircleAvatar(
-                            child: Text(stop.order.toString()),
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isCurrent
+                                  ? const Color(0xFF258BA1)
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          title: Text(stop.name),
-                          subtitle: Text('Order ${stop.order}'),
-                          trailing: isCurrent
-                              ? const Icon(Icons.directions_bus)
-                              : (isSelected
-                                    ? const Icon(Icons.check_circle_outline)
-                                    : null),
-                          onTap: () => _handleStopTap(stop),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: isCurrent
+                                  ? const Color(0xFF258BA1)
+                                  : Colors.grey[200],
+                              foregroundColor: isCurrent
+                                  ? Colors.white
+                                  : Colors.grey[700],
+                              child: Text(stop.order.toString()),
+                            ),
+                            title: Text(
+                              stop.name,
+                              style: TextStyle(
+                                fontWeight: isCurrent
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                            subtitle: Text('Order ${stop.order}'),
+                            trailing: isCurrent
+                                ? const Icon(
+                                    Icons.directions_bus,
+                                    color: Color(0xFF258BA1),
+                                  )
+                                : (isSelected
+                                      ? const Icon(
+                                          Icons.check_circle,
+                                          color: Color(0xFF258BA1),
+                                        )
+                                      : null),
+                            onTap: () => _handleStopTap(stop),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         );
                       },
                     ),

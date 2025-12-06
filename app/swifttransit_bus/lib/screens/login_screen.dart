@@ -31,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _error;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -65,20 +66,22 @@ class _LoginScreenState extends State<LoginScreen> {
       await widget.storage.saveRoute(route);
 
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (_) => HomeScreen(
-          apiService: widget.apiService,
-          session: SessionData(
-            token: login.token,
-            routeId: login.routeId,
-            busId: login.busId,
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => HomeScreen(
+            apiService: widget.apiService,
+            session: SessionData(
+              token: login.token,
+              routeId: login.routeId,
+              busId: login.busId,
+            ),
+            route: route,
+            storage: widget.storage,
+            locationService: widget.locationService,
+            socketService: widget.socketService,
           ),
-          route: route,
-          storage: widget.storage,
-          locationService: widget.locationService,
-          socketService: widget.socketService,
         ),
-      ));
+      );
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -93,58 +96,151 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Bus Login',
-                      style: Theme.of(context).textTheme.headlineMedium),
+                  const Icon(
+                    Icons.directions_bus_filled_rounded,
+                    size: 80,
+                    color: Color(0xFF258BA1),
+                  ),
                   const SizedBox(height: 24),
+                  Text(
+                    'Welcome Back',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Sign in to continue',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
                   TextFormField(
                     controller: _busIdController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Bus ID',
+                    decoration: InputDecoration(
+                      labelText: 'Registration Number',
+                      hintText: 'Enter bus registration number',
+                      prefixIcon: const Icon(Icons.badge_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF258BA1),
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
                     ),
                     validator: (value) =>
                         value == null || value.isEmpty ? 'Required' : null,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
                   TextFormField(
                     controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
                       labelText: 'Password',
+                      hintText: 'Enter your password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF258BA1),
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
                     ),
                     validator: (value) =>
                         value == null || value.isEmpty ? 'Required' : null,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
                   if (_error != null)
-                    Text(
-                      _error!,
-                      style: const TextStyle(color: Colors.red),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red[100]!),
+                      ),
+                      child: Text(
+                        _error!,
+                        style: TextStyle(color: Colors.red[700], fontSize: 14),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  const SizedBox(height: 12),
+                  if (_error != null) const SizedBox(height: 24),
                   SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
+                    height: 56,
+                    child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleLogin,
-                      icon: _isLoading
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF258BA1),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: _isLoading
                           ? const SizedBox(
-                              height: 16,
-                              width: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
-                          : const Icon(Icons.login),
-                      label: Text(_isLoading ? 'Logging in...' : 'Login'),
+                          : const Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ],

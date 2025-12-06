@@ -10,7 +10,8 @@ import 'package:swifttransit_bus/services/route_storage.dart';
 import 'package:swifttransit_bus/services/socket_service.dart';
 
 const _apiBaseUrl = 'https://thermosetting-paralexic-paulene.ngrok-free.dev';
-const _socketUrl = 'wss://thermosetting-paralexic-paulene.ngrok-free.de/ws';
+const _socketUrl =
+    'https://thermosetting-paralexic-paulene.ngrok-free.dev/bus/location';
 
 void main() {
   runApp(const MyApp());
@@ -62,7 +63,10 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'SwiftTransit Bus',
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: const Color(0xFF258BA1),
+      ),
       home: FutureBuilder<(SessionData?, BusRoute?)>(
         future: _restoreSession(),
         builder: (context, snapshot) {

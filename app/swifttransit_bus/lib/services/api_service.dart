@@ -108,8 +108,8 @@ class ApiService {
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     return TicketCheckResult(
-      isValid: data['valid'] == true,
-      message: data['message']?.toString() ?? 'Unknown response',
+      isValid: data['status'] == 'valid',
+      message: data['message']?.toString() ?? 'Ticket is ${data['status']}',
       payload: data,
     );
   }

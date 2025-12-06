@@ -41,7 +41,7 @@ class LiveLocationProvider extends ChangeNotifier {
   LiveLocationProvider({required this.routeId});
 
   final int routeId;
-  LiveLocationUpdate? latestUpdate;
+  final Map<int, LiveLocationUpdate> busLocations = {};
   bool connecting = false;
   String? errorMessage;
 
@@ -68,13 +68,17 @@ class LiveLocationProvider extends ChangeNotifier {
 
     final uri = _buildSocketUri();
     try {
-      _channel = IOWebSocketChannel.connect(uri.toString());
+      _channel = IOWebSocketChannel.connect(
+        uri.toString(),
+        headers: {'ngrok-skip-browser-warning': 'true'},
+      );
       _subscription = _channel!.stream.listen(
         (event) {
           try {
             final data = event is String ? jsonDecode(event) : event;
             if (data is Map<String, dynamic>) {
-              latestUpdate = LiveLocationUpdate.fromJson(data);
+              final update = LiveLocationUpdate.fromJson(data);
+              busLocations[update.busId] = update;
               errorMessage = null;
               notifyListeners();
             }

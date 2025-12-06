@@ -61,8 +61,10 @@ class _LiveBusLocationScreenState extends State<LiveBusLocationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final routeId = (_selectedTicket['route_id'] as num?)?.toInt() ?? widget.routeId;
-    final title = _selectedTicket.containsKey('start_destination') &&
+    final routeId =
+        (_selectedTicket['route_id'] as num?)?.toInt() ?? widget.routeId;
+    final title =
+        _selectedTicket.containsKey('start_destination') &&
             _selectedTicket.containsKey('end_destination')
         ? '${_selectedTicket['start_destination']} → ${_selectedTicket['end_destination']}'
         : widget.title;
@@ -100,18 +102,20 @@ class _LiveBusLocationView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<LiveLocationProvider>();
-    final update = provider.latestUpdate;
+    final busLocations = provider.busLocations;
     final markers = <Marker>[];
     final ticketOptions = tickets ?? [];
-    final selectedId = (selectedTicket?['id'] as num?)?.toInt() ??
+    final selectedId =
+        (selectedTicket?['id'] as num?)?.toInt() ??
         (selectedTicket?['route_id'] as num?)?.toInt();
-    final dropdownValue = selectedId ??
+    final dropdownValue =
+        selectedId ??
         (ticketOptions.isNotEmpty
             ? ((ticketOptions.first['id'] as num?)?.toInt() ??
-                (ticketOptions.first['route_id'] as num?)?.toInt())
+                  (ticketOptions.first['route_id'] as num?)?.toInt())
             : null);
 
-    if (update != null) {
+    for (final update in busLocations.values) {
       markers.add(
         Marker(
           width: 52,
@@ -132,15 +136,21 @@ class _LiveBusLocationView extends StatelessWidget {
               child: InputDecorator(
                 decoration: InputDecoration(
                   labelText: 'Select ticket to track',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
                     isExpanded: true,
                     value: dropdownValue,
                     items: ticketOptions.map((ticket) {
-                      final id = (ticket['id'] as num?)?.toInt() ??
+                      final id =
+                          (ticket['id'] as num?)?.toInt() ??
                           (ticket['route_id'] as num?)?.toInt();
                       final label =
                           '${ticket['bus_name'] ?? 'Bus'} • ${ticket['start_destination']} → ${ticket['end_destination']}';
@@ -154,7 +164,8 @@ class _LiveBusLocationView extends StatelessWidget {
                         : (value) {
                             if (value == null) return;
                             final ticket = ticketOptions.firstWhere(
-                              (t) => ((t['id'] as num?)?.toInt() ??
+                              (t) =>
+                                  ((t['id'] as num?)?.toInt() ??
                                       (t['route_id'] as num?)?.toInt()) ==
                                   value,
                               orElse: () => <String, dynamic>{},
@@ -170,7 +181,9 @@ class _LiveBusLocationView extends StatelessWidget {
           Expanded(
             child: FlutterMap(
               options: MapOptions(
-                initialCenter: update?.latLng ?? const LatLng(23.8103, 90.4125),
+                initialCenter: busLocations.isNotEmpty
+                    ? busLocations.values.first.latLng
+                    : const LatLng(23.8103, 90.4125),
                 initialZoom: 12,
               ),
               children: [
@@ -219,27 +232,36 @@ class _LiveBusLocationView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                if (update != null)
-                  Row(
-                    children: [
-                      Chip(
-                        label: Text('Bus #${update.busId}'),
-                        backgroundColor: AppColors.primary.withOpacity(0.1),
-                        labelStyle: TextStyle(color: AppColors.primary),
-                      ),
-                      const SizedBox(width: 8),
-                      if (update.speed != null)
-                        Chip(
-                          label: Text(
-                            '${update.speed!.toStringAsFixed(1)} km/h',
-                          ),
+                if (busLocations.isNotEmpty)
+                  Column(
+                    children: busLocations.values.map((update) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Row(
+                          children: [
+                            Chip(
+                              label: Text('Bus #${update.busId}'),
+                              backgroundColor: AppColors.primary.withOpacity(
+                                0.1,
+                              ),
+                              labelStyle: TextStyle(color: AppColors.primary),
+                            ),
+                            const SizedBox(width: 8),
+                            if (update.speed != null)
+                              Chip(
+                                label: Text(
+                                  '${update.speed!.toStringAsFixed(1)} km/h',
+                                ),
+                              ),
+                            const Spacer(),
+                            Text(
+                              'Updated ${_timeAgo(update.receivedAt)}',
+                              style: const TextStyle(color: Colors.black54),
+                            ),
+                          ],
                         ),
-                      const Spacer(),
-                      Text(
-                        'Updated ${_timeAgo(update.receivedAt)}',
-                        style: const TextStyle(color: Colors.black54),
-                      ),
-                    ],
+                      );
+                    }).toList(),
                   )
                 else if (provider.errorMessage != null)
                   Text(
