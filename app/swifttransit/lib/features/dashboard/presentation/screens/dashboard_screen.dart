@@ -366,7 +366,7 @@ class _BalanceCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Consumer<DashboardProvider>(
                           builder: (context, provider, _) => Text(
-                            '${provider.balance}',
+                            provider.balance.toStringAsFixed(2),
                             style: const TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
@@ -378,8 +378,6 @@ class _BalanceCard extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Recharge button (primary)
               ElevatedButton.icon(
                 onPressed: () => _openRechargeSheet(context),
                 icon: Icon(

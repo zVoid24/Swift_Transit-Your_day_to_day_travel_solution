@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"swift_transit/domain"
@@ -521,7 +522,14 @@ func (s *service) DownloadTicket(id int64) ([]byte, error) {
 }
 
 func (s *service) GetByUserID(userId int64, limit, offset int) ([]domain.Ticket, int, error) {
-	return s.repo.GetByUserID(userId, limit, offset)
+	tickets, total, err := s.repo.GetByUserID(userId, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range tickets {
+		tickets[i].Fare = math.Ceil(tickets[i].Fare)
+	}
+	return tickets, total, nil
 }
 
 func (s *service) CancelTicket(userID int64, ticketID int64) (float64, error) {

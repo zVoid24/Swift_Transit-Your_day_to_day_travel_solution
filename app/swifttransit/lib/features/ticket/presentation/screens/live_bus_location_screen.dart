@@ -115,13 +115,154 @@ class _LiveBusLocationView extends StatelessWidget {
                   (ticketOptions.first['route_id'] as num?)?.toInt())
             : null);
 
+    // Build markers
+    // 1. Stoppage markers
+    for (final stop in provider.stops) {
+      final lat = stop['lat'];
+      final lon = stop['lon'];
+      final name = stop['name']?.toString() ?? '';
+      if (lat is num && lon is num) {
+        markers.add(
+          Marker(
+            point: LatLng(lat.toDouble(), lon.toDouble()),
+            width: 100,
+            height: 60,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (name.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.black, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+
+    // 2. User Location Marker
+    if (provider.userLocation != null) {
+      markers.add(
+        Marker(
+          point: provider.userLocation!,
+          width: 60,
+          height: 60,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: Colors.blue,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 2. Bus markers
     for (final update in busLocations.values) {
       markers.add(
         Marker(
-          width: 52,
-          height: 52,
+          width: 60,
+          height: 60,
           point: update.latLng,
-          child: const Icon(Icons.directions_bus, color: Colors.red, size: 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.directions_bus,
+                  color: Colors.black,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${update.speed?.toStringAsFixed(0) ?? 0} km/h',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -188,9 +329,28 @@ class _LiveBusLocationView extends StatelessWidget {
               ),
               children: [
                 TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  urlTemplate:
+                      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c', 'd'],
                   userAgentPackageName: 'com.example.swifttransit',
                 ),
+                if (provider.routePoints.isNotEmpty)
+                  PolylineLayer(
+                    polylines: [
+                      // Border
+                      Polyline(
+                        points: provider.routePoints,
+                        strokeWidth: 7.0,
+                        color: Colors.white,
+                      ),
+                      // Main line
+                      Polyline(
+                        points: provider.routePoints,
+                        strokeWidth: 4.0,
+                        color: Colors.black,
+                      ),
+                    ],
+                  ),
                 MarkerLayer(markers: markers),
               ],
             ),

@@ -293,17 +293,27 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
               ),
               children: [
                 TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  urlTemplate:
+                      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c', 'd'],
                   userAgentPackageName: 'com.example.swifttransit',
                 ),
                 PolylineLayer(
                   polylines: [
-                    if (provider.routePoints.isNotEmpty)
+                    if (provider.routePoints.isNotEmpty) ...[
+                      // Border
+                      Polyline(
+                        points: provider.routePoints,
+                        strokeWidth: 7.0,
+                        color: Colors.white,
+                      ),
+                      // Main line
                       Polyline(
                         points: provider.routePoints,
                         strokeWidth: 4.0,
-                        color: AppColors.primary,
+                        color: Colors.black,
                       ),
+                    ],
                   ],
                 ),
                 MarkerLayer(markers: provider.markers),
@@ -572,9 +582,17 @@ class _BuyTicketScreenState extends State<BuyTicketScreen> {
                   ? (stops.last['name']?.toString() ?? '')
                   : provider.selectedDestination ?? '';
               final fare = bus['fare'];
-              final fareDisplay = fare is num
-                  ? "৳${fare.toStringAsFixed(0)}"
-                  : (fare != null ? "৳$fare" : "৳--");
+              String fareDisplay = "৳--";
+              if (fare is num) {
+                fareDisplay = "৳$fare";
+              } else if (fare != null) {
+                final parsed = double.tryParse(fare.toString());
+                if (parsed != null) {
+                  fareDisplay = "৳$parsed";
+                } else {
+                  fareDisplay = "৳$fare";
+                }
+              }
               final isSelected = provider.selectedBusIndex == index;
 
               return InkWell(

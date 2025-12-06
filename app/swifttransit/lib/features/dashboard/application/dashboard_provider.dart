@@ -480,8 +480,17 @@ class DashboardProvider extends ChangeNotifier {
       return null;
     }
     final fare = availableBuses[selectedBusIndex!]['fare'];
-    if (fare is num) return fare.toDouble();
-    return double.tryParse(fare?.toString() ?? '');
+    double? parsedFare;
+    if (fare is num) {
+      parsedFare = fare.toDouble();
+    } else {
+      parsedFare = double.tryParse(fare?.toString() ?? '');
+    }
+
+    if (parsedFare != null) {
+      return parsedFare;
+    }
+    return null;
   }
 
   List<LatLng> _extractRoutePoints(dynamic geometry) {
@@ -517,12 +526,61 @@ class DashboardProvider extends ChangeNotifier {
         .map<Marker?>((stop) {
           final lat = stop['lat'];
           final lon = stop['lon'];
+          final name = stop['name']?.toString() ?? '';
           if (lat is num && lon is num) {
             return Marker(
               point: LatLng(lat.toDouble(), lon.toDouble()),
-              width: 40,
-              height: 40,
-              child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+              width: 100,
+              height: 60,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (name.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.black, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             );
           }
           return null;

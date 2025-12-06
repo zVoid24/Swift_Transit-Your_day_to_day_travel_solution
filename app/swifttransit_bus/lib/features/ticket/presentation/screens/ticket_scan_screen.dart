@@ -7,10 +7,7 @@ import 'package:swifttransit_bus/features/auth/application/session_provider.dart
 import 'package:swifttransit_bus/features/routes/domain/models/route_models.dart';
 
 class TicketScanScreen extends StatefulWidget {
-  const TicketScanScreen({
-    super.key,
-    required this.currentStop,
-  });
+  const TicketScanScreen({super.key, required this.currentStop});
 
   final RouteStop currentStop;
 
@@ -19,7 +16,11 @@ class TicketScanScreen extends StatefulWidget {
 }
 
 class _TicketScanScreenState extends State<TicketScanScreen> {
-  final MobileScannerController _controller = MobileScannerController();
+  final MobileScannerController _controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+    formats: [BarcodeFormat.qrCode],
+    returnImage: false,
+  );
   bool _processing = false;
   String? _statusMessage;
   bool? _isValid;

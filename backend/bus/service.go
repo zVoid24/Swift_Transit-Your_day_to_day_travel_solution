@@ -2,6 +2,7 @@ package bus
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"swift_transit/domain"
 	"swift_transit/ticket"
@@ -28,7 +29,14 @@ func NewService(repo BusRepo, ticketRepo ticket.TicketRepo) Service {
 }
 
 func (svc *service) FindBus(start, end string) ([]domain.Bus, error) {
-	return svc.repo.FindBus(start, end)
+	buses, err := svc.repo.FindBus(start, end)
+	if err != nil {
+		return nil, err
+	}
+	for i := range buses {
+		buses[i].Fare = math.Ceil(buses[i].Fare)
+	}
+	return buses, nil
 }
 
 func (svc *service) Login(regNum, password string, variant string) (*BusLoginResult, error) {

@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"math"
 	"swift_transit/domain"
 
 	"golang.org/x/crypto/bcrypt"
@@ -26,6 +27,7 @@ func (svc *service) Info(ctx context.Context) (*domain.User, error) {
 	if usr == nil {
 		return nil, nil
 	}
+	usr.Balance = float32(math.Round(float64(usr.Balance)*100) / 100)
 	return usr, nil
 }
 

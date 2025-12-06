@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -42,7 +43,14 @@ func NewService(repo *repo.TransactionRepo, userRepo user.UserRepo, sslCommerz *
 }
 
 func (s *service) GetTransactions(userID int) ([]model.Transaction, error) {
-	return s.repo.GetByUserID(userID)
+	trans, err := s.repo.GetByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range trans {
+		trans[i].Amount = math.Round(trans[i].Amount*100) / 100
+	}
+	return trans, nil
 }
 
 type rechargeSession struct {

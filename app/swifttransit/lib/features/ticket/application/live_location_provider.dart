@@ -2,7 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/io.dart';
 
 import 'package:swifttransit/core/constants.dart';
@@ -42,6 +45,9 @@ class LiveLocationProvider extends ChangeNotifier {
 
   final int routeId;
   final Map<int, LiveLocationUpdate> busLocations = {};
+  List<LatLng> routePoints = [];
+  List<dynamic> stops = [];
+  LatLng? userLocation;
   bool connecting = false;
   String? errorMessage;
 
@@ -62,6 +68,11 @@ class LiveLocationProvider extends ChangeNotifier {
 
   Future<void> connect() async {
     await disconnect();
+    // Fetch static route data (polyline, stops)
+    fetchRouteDetails();
+    // Fetch user location
+    fetchUserLocation();
+
     connecting = true;
     errorMessage = null;
     notifyListeners();
@@ -108,6 +119,96 @@ class LiveLocationProvider extends ChangeNotifier {
     _subscription = null;
     await _channel?.sink.close();
     _channel = null;
+  }
+
+  Future<void> fetchRouteDetails() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jwt = prefs.getString('jwt');
+      // Even if public, sending JWT if available is good practice, or required by some endpoints
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (jwt != null) headers['Authorization'] = 'Bearer $jwt';
+
+      final response = await http.get(
+        Uri.parse('${AppConstants.baseUrl}/route/$routeId'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // Parse stops
+        if (data['stops'] != null) {
+          stops = List.from(data['stops']);
+        }
+
+        // Parse polyline
+        if (data['linestring_geojson'] != null) {
+          routePoints = _extractRoutePoints(data['linestring_geojson']);
+        }
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error fetching route details: $e');
+    }
+  }
+
+  List<LatLng> _extractRoutePoints(dynamic geometry) {
+    List<dynamic> coordinates = [];
+    try {
+      if (geometry is String && geometry.isNotEmpty) {
+        final geoJson = jsonDecode(geometry);
+        coordinates = geoJson['coordinates'] ?? [];
+      } else if (geometry is Map<String, dynamic>) {
+        coordinates = geometry['coordinates'] ?? [];
+      }
+    } catch (e) {
+      debugPrint('Failed to parse route geometry: $e');
+    }
+
+    return coordinates
+        .whereType<List>()
+        .map<LatLng?>((coord) {
+          if (coord.length < 2) return null;
+          final lon = coord[0];
+          final lat = coord[1];
+          if (lon is num && lat is num) {
+            return LatLng(lat.toDouble(), lon.toDouble());
+          }
+          return null;
+        })
+        .whereType<LatLng>()
+        .toList();
+  }
+
+  Future<void> fetchUserLocation() async {
+    try {
+      bool serviceEnabled;
+      LocationPermission permission;
+
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return;
+      }
+
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+      userLocation = LatLng(position.latitude, position.longitude);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error fetching user location: $e');
+    }
   }
 
   @override

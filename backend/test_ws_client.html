@@ -42,7 +42,7 @@
 
       function connect() {
         const routeId = document.getElementById("routeId").value;
-        const url = `ws://localhost:8080/ws/location?route_id=${routeId}`;
+        const url = `ws://thermosetting-paralexic-paulene.ngrok-free.dev/ws/location?route_id=${routeId}`;
 
         if (ws) {
           ws.close();

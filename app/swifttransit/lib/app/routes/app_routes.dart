@@ -35,20 +35,34 @@ class AppRoutes {
   static const otpVerification = '/otp-verification';
 
   static Map<String, WidgetBuilder> get routes => {
-        root: (_) => const SplashScreen(),
-        login: (_) => const LoginScreen(),
-        signup: (_) => const SignupScreen(),
-        dashboard: (_) => const DashboardScreen(),
-        search: (_) => const SearchScreen(),
-        profile: (_) => const ProfileScreen(),
-        transactions: (_) => const TransactionScreen(),
-        tickets: (_) => const TicketListScreen(),
-        buyTicket: (_) => const BuyTicketScreen(),
-        ticketDetail: (_) => const TicketDetailScreen(),
-        liveBus: (_) => const LiveBusLocationScreen(routeId: ''),
-        payment: (_) => const PaymentWebViewScreen(url: ''),
-        forgotPassword: (_) => const ForgotPasswordScreen(),
-        forgotPasswordOtp: (_) => const ForgotPasswordOtpScreen(),
-        otpVerification: (_) => const OtpVerificationScreen(),
-      };
+    root: (_) => const SplashScreen(),
+    login: (_) => const LoginScreen(),
+    signup: (_) => const SignupScreen(),
+    dashboard: (_) => const DashboardScreen(),
+    search: (_) => const SearchScreen(),
+    profile: (_) => const DemoProfileScreen(),
+    transactions: (_) => const TransactionScreen(),
+    tickets: (_) => const TicketListScreen(),
+    buyTicket: (_) => const BuyTicketScreen(),
+    ticketDetail: (context) {
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ??
+          {};
+      return TicketDetailScreen(
+        tickets:
+            (args['tickets'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
+            [],
+        initialIndex: args['initialIndex'] as int? ?? 0,
+      );
+    },
+    liveBus: (_) => const LiveBusLocationScreen(routeId: 0, title: ''),
+    payment: (_) => const PaymentWebViewScreen(paymentUrl: ''),
+    forgotPassword: (_) => const ForgotPasswordScreen(),
+    forgotPasswordOtp: (context) => ForgotPasswordOtpScreen(
+      email: ModalRoute.of(context)?.settings.arguments as String? ?? '',
+    ),
+    otpVerification: (context) => OtpVerificationScreen(
+      email: ModalRoute.of(context)?.settings.arguments as String? ?? '',
+    ),
+  };
 }

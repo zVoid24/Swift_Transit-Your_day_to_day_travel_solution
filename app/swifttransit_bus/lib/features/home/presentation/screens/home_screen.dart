@@ -137,29 +137,29 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-    Future<void> _refreshRoute() async {
-      try {
-        final freshRoute = await _apiService.fetchRoute(
-          routeId: _session.routeId,
-          token: _session.token,
-        );
-        await _storage.saveRoute(freshRoute);
-        setState(() {
-          _resolver = RouteResolver(route: freshRoute);
-          _error = null;
-        });
-        context.read<SessionProvider>().updateRoute(freshRoute);
-      } catch (e) {
-        setState(() {
-          _error = e.toString();
-        });
+  Future<void> _refreshRoute() async {
+    try {
+      final freshRoute = await _apiService.fetchRoute(
+        routeId: _session.routeId,
+        token: _session.token,
+      );
+      await _storage.saveRoute(freshRoute);
+      setState(() {
+        _resolver = RouteResolver(route: freshRoute);
+        _error = null;
+      });
+      context.read<SessionProvider>().updateRoute(freshRoute);
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
     }
   }
 
-    Future<void> _handleLogout() async {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
+  Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
         title: const Text('Logout'),
         content: const Text('Are you sure you want to logout?'),
         actions: [
@@ -174,19 +174,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      );
+    );
 
-      if (confirmed == true) {
-        await context.read<SessionProvider>().logout();
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.login,
-            (route) => false,
-          );
-        }
+    if (confirmed == true) {
+      await context.read<SessionProvider>().logout();
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.login,
+          (route) => false,
+        );
       }
     }
+  }
 
   void _openScanner() {
     Navigator.of(context).push(
@@ -207,9 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final route = sessionProvider.route;
 
     if (session == null || route == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -259,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
         width: 70,
         child: FloatingActionButton(
           onPressed: _openScanner,
-          backgroundColor: const AppColors.primary,
+          backgroundColor: AppColors.primary,
           elevation: 4,
           child: const Icon(
             Icons.qr_code_scanner,
@@ -356,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -487,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
                           color: isCurrent
-                              ? const AppColors.primary
+                              ? AppColors.primary
                               : (isSelected ? Colors.blue[50] : Colors.white),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
@@ -498,10 +496,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                           border: isSelected
-                              ? Border.all(
-                                  color: const AppColors.primary,
-                                  width: 2,
-                                )
+                              ? Border.all(color: AppColors.primary, width: 2)
                               : null,
                         ),
                         child: Material(
