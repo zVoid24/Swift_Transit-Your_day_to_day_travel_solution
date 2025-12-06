@@ -19,15 +19,19 @@ class RouteStop {
     required this.polygon,
   });
 
-  factory RouteStop.fromFeature(Map<String, dynamic> feature) {
+  factory RouteStop.fromFeature(
+    Map<String, dynamic> feature, {
+    int? fallbackOrder,
+  }) {
     final properties = feature['properties'] as Map<String, dynamic>? ?? {};
     final coordinates = feature['geometry']['coordinates'] as List<dynamic>;
     final ring = coordinates.first as List<dynamic>;
     return RouteStop(
       name: properties['Name']?.toString() ?? 'Unknown stop',
-      order: (properties['order'] ?? 0) is int
-          ? properties['order'] as int
-          : int.tryParse(properties['order'].toString()) ?? 0,
+      order: (properties['order'] ?? fallbackOrder ?? 0) is int
+          ? (properties['order'] ?? fallbackOrder ?? 0) as int
+          : int.tryParse((properties['order'] ?? fallbackOrder ?? 0).toString()) ??
+              0,
       polygon: ring
           .map((pair) => LatLng(
                 longitude: (pair[0] as num).toDouble(),
@@ -101,6 +105,27 @@ class BusRoute {
 
   factory BusRoute.fromJson(Map<String, dynamic> json) {
     final features = json['features'] as List<dynamic>? ?? [];
+
+    int? parseOrder(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      return int.tryParse(value.toString());
+    }
+
+    final pointOrders = <String, int>{};
+    for (final feature in features) {
+      final map = feature as Map<String, dynamic>;
+      final geometry = map['geometry'] as Map<String, dynamic>?;
+      if (geometry == null || geometry['type'] != 'Point') continue;
+
+      final properties = map['properties'] as Map<String, dynamic>? ?? {};
+      final name = properties['Name']?.toString();
+      final order = parseOrder(properties['order']);
+      if (name != null && order != null) {
+        pointOrders[name] = order;
+      }
+    }
+
     final stopFeatures = features.where((feature) {
       final map = feature as Map<String, dynamic>;
       final geometry = map['geometry'] as Map<String, dynamic>?;
@@ -108,7 +133,12 @@ class BusRoute {
     }).cast<Map<String, dynamic>>();
 
     final stops = stopFeatures
-        .map((feature) => RouteStop.fromFeature(feature))
+        .map((feature) {
+      final properties = feature['properties'] as Map<String, dynamic>? ?? {};
+      final name = properties['Name']?.toString();
+      final fallbackOrder = name != null ? pointOrders[name] : null;
+      return RouteStop.fromFeature(feature, fallbackOrder: fallbackOrder);
+    })
         .toList()
       ..sort((a, b) => a.order.compareTo(b.order));
 
