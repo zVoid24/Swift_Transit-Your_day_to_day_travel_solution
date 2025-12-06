@@ -265,6 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.qr_code_scanner),
               label: const Text('Scan QR'),
               backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
             ),
             const SizedBox(width: 16),
             FloatingActionButton.extended(
