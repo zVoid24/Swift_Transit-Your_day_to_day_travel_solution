@@ -37,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription<LatLng>? _locationSubscription;
   LatLng? _lastPosition;
   RouteStop? _currentStop;
+  RouteStop? _selectedStop;
   bool _tracking = false;
   String? _error;
 
@@ -61,6 +62,10 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _lastPosition = position;
           _currentStop = _resolver.resolveCurrentStop(position);
+          if (_selectedStop != null &&
+              _currentStop?.name == _selectedStop?.name) {
+            _selectedStop = null;
+          }
           _tracking = true;
           _error = null;
         });
@@ -77,6 +82,56 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       },
     );
+  }
+
+  void _setManualStop(RouteStop stop) {
+    _resolver.setCurrentStop(stop, lockToStop: true);
+    setState(() {
+      _currentStop = stop;
+      _selectedStop = stop;
+      _error = null;
+    });
+  }
+
+  Future<void> _handleStopTap(RouteStop stop) async {
+    try {
+      final position = _lastPosition ?? await widget.locationService.currentPosition();
+      _lastPosition = position;
+      final isInside = stop.contains(position);
+      if (isInside) {
+        _setManualStop(stop);
+        return;
+      }
+
+      final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Confirm stoppage'),
+              content: Text(
+                'You do not appear to be inside ${stop.name}. Are you currently at this stoppage?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('No'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text('Yes, update'),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+
+      if (confirmed) {
+        _setManualStop(stop);
+      }
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+    }
   }
 
   Future<void> _refreshRoute() async {
@@ -167,11 +222,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 itemBuilder: (_, index) {
                   final stop = widget.route.stops[index];
                   final isCurrent = stop.name == _currentStop?.name;
+                  final isSelected = stop.name == _selectedStop?.name;
                   return ListTile(
                     leading: CircleAvatar(child: Text(stop.order.toString())),
                     title: Text(stop.name),
                     subtitle: Text('Order ${stop.order}'),
-                    trailing: isCurrent ? const Icon(Icons.directions_bus) : null,
+                    trailing: isCurrent
+                        ? const Icon(Icons.directions_bus)
+                        : (isSelected
+                            ? const Icon(Icons.check_circle_outline)
+                            : null),
+                    onTap: () => _handleStopTap(stop),
                   );
                 },
               ),

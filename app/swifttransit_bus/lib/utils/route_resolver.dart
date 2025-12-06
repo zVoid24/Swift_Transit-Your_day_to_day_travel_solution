@@ -4,24 +4,32 @@ class RouteResolver {
   RouteResolver({required this.route});
 
   final BusRoute route;
+  RouteStop? _manualStop;
   int? _lastStopOrder;
 
   RouteStop? resolveCurrentStop(LatLng position) {
     // 1. Check if we are inside any stop polygon
     for (final stop in route.stops) {
       if (stop.contains(position)) {
+        _manualStop = null;
         _lastStopOrder = stop.order;
         return stop;
       }
     }
 
-    // 2. If we have a last known stop, return the next one
+    // 2. Respect a manually selected stop if one is set
+    if (_manualStop != null) {
+      _lastStopOrder = _manualStop!.order;
+      return _manualStop;
+    }
+
+    // 3. If we have a last known stop, return the next one
     if (_lastStopOrder != null) {
       return _nextStopAfter(_lastStopOrder!) ??
           _currentByOrder(_lastStopOrder!);
     }
 
-    // 3. Initial state: we haven't hit any stop yet.
+    // 4. Initial state: we haven't hit any stop yet.
     // Return the first stop in the route.
     if (route.stops.isNotEmpty) {
       final sortedStops = [...route.stops]
@@ -30,6 +38,11 @@ class RouteResolver {
     }
 
     return null;
+  }
+
+  void setCurrentStop(RouteStop stop, {bool lockToStop = false}) {
+    _lastStopOrder = stop.order;
+    _manualStop = lockToStop ? stop : null;
   }
 
   RouteStop? _currentByOrder(int order) {
