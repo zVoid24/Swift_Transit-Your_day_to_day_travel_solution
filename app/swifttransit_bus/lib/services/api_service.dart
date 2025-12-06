@@ -7,12 +7,34 @@ class LoginResult {
   final String token;
   final int routeId;
   final String busId;
+  final int busCredentialId;
+  final String variant;
+  final List<RouteVariant> variants;
 
   LoginResult({
     required this.token,
     required this.routeId,
     required this.busId,
+    required this.busCredentialId,
+    required this.variant,
+    required this.variants,
   });
+}
+
+class RouteVariant {
+  final String variant;
+  final int routeId;
+
+  const RouteVariant({required this.variant, required this.routeId});
+
+  factory RouteVariant.fromJson(Map<String, dynamic> json) {
+    return RouteVariant(
+      variant: json['variant']?.toString() ?? '',
+      routeId: json['route_id'] is int
+          ? json['route_id'] as int
+          : int.tryParse(json['route_id'].toString()) ?? 0,
+    );
+  }
 }
 
 class TicketCheckResult {
@@ -35,6 +57,7 @@ class ApiService {
   Future<LoginResult> login({
     required String busIdentifier,
     required String password,
+    required String variant,
   }) async {
     final uri = Uri.parse('$baseUrl/bus/auth/login');
     final response = await http.post(
@@ -43,6 +66,7 @@ class ApiService {
       body: jsonEncode({
         'registration_number': busIdentifier,
         'password': password,
+        'variant': variant,
       }),
     );
 
@@ -53,12 +77,21 @@ class ApiService {
     }
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final variants = (data['bus']['variants'] as List<dynamic>? ?? [])
+        .map((v) => RouteVariant.fromJson(v as Map<String, dynamic>))
+        .where((v) => v.routeId != 0 && v.variant.isNotEmpty)
+        .toList();
     return LoginResult(
       token: data['token']?.toString() ?? '',
       routeId: data['bus']['route_id'] is int
           ? data['bus']['route_id'] as int
           : int.tryParse(data['bus']['route_id'].toString()) ?? 0,
       busId: data['bus']['registration_number']?.toString() ?? busIdentifier,
+      busCredentialId: data['bus']['id'] is int
+          ? data['bus']['id'] as int
+          : int.tryParse(data['bus']['id'].toString()) ?? 0,
+      variant: data['bus']['variant']?.toString() ?? variant,
+      variants: variants,
     );
   }
 

@@ -33,11 +33,17 @@ func (h *Handler) UpdateLocation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Basic validation
-	if update.RouteID == 0 || update.BusID == 0 {
-		h.utilHandler.SendError(w, "route_id and bus_id are required", http.StatusBadRequest)
+	busData, err := h.busFromContext(r)
+	if err != nil {
+		h.utilHandler.SendError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+
+	// Basic validation
+	if update.BusID == 0 {
+		update.BusID = busData.Id
+	}
+	update.RouteID = busData.RouteId
 
 	h.hub.BroadcastLocation(update)
 	h.utilHandler.SendData(w, "Location updated", http.StatusOK)

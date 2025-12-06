@@ -15,7 +15,7 @@ class SocketService {
   Future<void> sendPosition({
     required LatLng position,
     required int routeId,
-    required String busId,
+    required int busCredentialId,
   }) async {
     try {
       final uri = Uri.parse(url);
@@ -24,7 +24,7 @@ class SocketService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'route_id': routeId,
-          'bus_id': int.tryParse(busId) ?? 0, // Backend expects int
+          'bus_id': busCredentialId,
           'latitude': position.latitude,
           'longitude': position.longitude,
           'speed': 0.0, // Optional, can add if available

@@ -8,6 +8,7 @@ import (
 type LoginRequest struct {
 	RegistrationNumber string `json:"registration_number"`
 	Password           string `json:"password"`
+	Variant            string `json:"variant"`
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -17,16 +18,32 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bus, err := h.svc.Login(req.RegistrationNumber, req.Password)
+	if req.Variant == "" {
+		h.utilHandler.SendError(w, "variant is required", http.StatusBadRequest)
+		return
+	}
+
+	bus, err := h.svc.Login(req.RegistrationNumber, req.Password, req.Variant)
 	if err != nil {
 		h.utilHandler.SendError(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
 	busData := BusAuthData{
-		Id:                 bus.Id,
-		RegistrationNumber: bus.RegistrationNumber,
-		RouteId:            bus.RouteId,
+		Id:                 bus.Credential.Id,
+		RegistrationNumber: bus.Credential.RegistrationNumber,
+		RouteId:            bus.SelectedRouteID,
+		Variant:            bus.Variant,
+		Variants: []RouteVariant{
+			{
+				Variant: "up",
+				RouteId: bus.Credential.RouteIdUp,
+			},
+			{
+				Variant: "down",
+				RouteId: bus.Credential.RouteIdDown,
+			},
+		},
 	}
 
 	token, err := h.utilHandler.CreateJWT(busData)

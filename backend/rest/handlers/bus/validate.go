@@ -7,7 +7,6 @@ import (
 
 type ValidateTicketRequest struct {
 	TicketID int64 `json:"ticket_id"`
-	RouteID  int64 `json:"route_id"`
 }
 
 func (h *Handler) ValidateTicket(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +16,13 @@ func (h *Handler) ValidateTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.svc.ValidateTicket(req.TicketID, req.RouteID)
+	busData, err := h.busFromContext(r)
+	if err != nil {
+		h.utilHandler.SendError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	err = h.svc.ValidateTicket(req.TicketID, busData.RouteId)
 	if err != nil {
 		h.utilHandler.SendError(w, "Validation failed", http.StatusBadRequest)
 		return

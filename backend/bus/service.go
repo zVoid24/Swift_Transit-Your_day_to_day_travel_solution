@@ -2,11 +2,18 @@ package bus
 
 import (
 	"fmt"
+	"strings"
 	"swift_transit/domain"
 	"swift_transit/ticket"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+type BusLoginResult struct {
+	Credential      *domain.BusCredential
+	SelectedRouteID int64
+	Variant         string
+}
 
 type service struct {
 	repo       BusRepo
@@ -24,7 +31,7 @@ func (svc *service) FindBus(start, end string) ([]domain.Bus, error) {
 	return svc.repo.FindBus(start, end)
 }
 
-func (svc *service) Login(regNum, password string) (*domain.BusCredential, error) {
+func (svc *service) Login(regNum, password string, variant string) (*BusLoginResult, error) {
 	bus, err := svc.repo.GetBusByRegistrationNumber(regNum)
 	if err != nil {
 		return nil, err
@@ -35,10 +42,26 @@ func (svc *service) Login(regNum, password string) (*domain.BusCredential, error
 		return nil, fmt.Errorf("invalid credentials")
 	}
 
-	return bus, nil
+	normalizedVariant := strings.ToLower(variant)
+	var routeID int64
+
+	switch normalizedVariant {
+	case "up":
+		routeID = bus.RouteIdUp
+	case "down":
+		routeID = bus.RouteIdDown
+	default:
+		return nil, fmt.Errorf("invalid variant")
+	}
+
+	if routeID == 0 {
+		return nil, fmt.Errorf("route not configured for selected direction")
+	}
+
+	return &BusLoginResult{Credential: bus, SelectedRouteID: routeID, Variant: normalizedVariant}, nil
 }
 
-func (svc *service) Register(regNum, password string, routeId int64) (*domain.BusCredential, error) {
+func (svc *service) Register(regNum, password string, routeIdUp, routeIdDown int64) (*domain.BusCredential, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
@@ -47,7 +70,8 @@ func (svc *service) Register(regNum, password string, routeId int64) (*domain.Bu
 	busCred := domain.BusCredential{
 		RegistrationNumber: regNum,
 		Password:           string(hashedPassword),
-		RouteId:            routeId,
+		RouteIdUp:          routeIdUp,
+		RouteIdDown:        routeIdDown,
 	}
 
 	return svc.repo.Create(busCred)

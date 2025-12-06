@@ -21,11 +21,15 @@ class SessionData {
   final String token;
   final int routeId;
   final String busId;
+  final int busCredentialId;
+  final String variant;
 
   const SessionData({
     required this.token,
     required this.routeId,
     required this.busId,
+    required this.busCredentialId,
+    required this.variant,
   });
 }
 
@@ -46,15 +50,25 @@ class _MyAppState extends State<MyApp> {
     final token = await storage.token;
     final routeId = await storage.routeId;
     final busId = await storage.busId;
+    final busCredentialId = await storage.busCredentialId;
+    final variant = await storage.variant;
     final cachedRoute = await storage.cachedRoute;
     if (token == null ||
         routeId == null ||
         busId == null ||
+        busCredentialId == null ||
+        variant == null ||
         cachedRoute == null) {
       return (null, null);
     }
     return (
-      SessionData(token: token, routeId: routeId, busId: busId),
+      SessionData(
+        token: token,
+        routeId: routeId,
+        busId: busId,
+        busCredentialId: busCredentialId,
+        variant: variant,
+      ),
       cachedRoute,
     );
   }
