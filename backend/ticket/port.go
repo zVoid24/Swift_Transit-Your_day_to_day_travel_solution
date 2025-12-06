@@ -63,6 +63,25 @@ type Service interface {
 	CancelTicket(userID int64, ticketID int64) (float64, error)
 	CreateTransaction(t model.Transaction) error
 	CheckTicket(req CheckTicketRequest) (map[string]interface{}, error)
+	ProcessRFIDPayment(req RFIDPaymentRequest) (*RFIDPaymentResponse, error)
+	CreateOverTravelTicket(originalTicketID int64, currentStop string, paymentCollected bool) (*domain.Ticket, error)
+}
+
+type RFIDPaymentRequest struct {
+	RFID             string `json:"rfid"`
+	RouteID          int64  `json:"route_id"`
+	BusName          string `json:"bus_name"`
+	StartDestination string `json:"start_destination"`
+	EndDestination   string `json:"end_destination"`
+}
+
+type RFIDPaymentResponse struct {
+	Success  bool    `json:"success"`
+	Status   string  `json:"status"` // SUCCESS, DUPLICATE, INACTIVE, INSUFFICIENT_BALANCE
+	Message  string  `json:"message"`
+	Balance  float64 `json:"balance"`
+	Fare     float64 `json:"fare"`
+	TicketID int64   `json:"ticket_id,omitempty"`
 }
 
 type TicketRepo interface {
@@ -78,4 +97,5 @@ type TicketRepo interface {
 	GetBatchCount(batchID string) (int, error)
 	GetStop(routeId int64, stopName string) (*domain.Stop, error)
 	GetByQRCode(qrCode string) (*domain.Ticket, error)
+	GetLatestTicket(userId int64, routeId int64) (*domain.Ticket, error)
 }

@@ -21,4 +21,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /user", h.mngr.With(http.HandlerFunc(h.Information), h.middlewareHandler.Authenticate))
 	mux.Handle("PUT /user", h.mngr.With(http.HandlerFunc(h.UpdateProfile), h.middlewareHandler.Authenticate))
 	mux.Handle("POST /auth/change-password", h.mngr.With(http.HandlerFunc(h.ChangePassword), h.middlewareHandler.Authenticate))
+	mux.Handle("GET /user/rfid", h.mngr.With(http.HandlerFunc(h.GetRFIDStatus), h.middlewareHandler.Authenticate))
+	mux.Handle("POST /user/rfid/toggle", h.mngr.With(http.HandlerFunc(h.ToggleRFIDStatus), h.middlewareHandler.Authenticate))
 }

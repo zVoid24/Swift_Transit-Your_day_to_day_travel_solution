@@ -305,7 +305,11 @@ func (s *service) CheckTicket(req CheckTicketRequest) (map[string]interface{}, e
 	// 1. Check Redis
 	val, err := s.redis.Get(s.ctx, fmt.Sprintf("ticket_valid:%s", req.QRCode)).Result()
 	if err == redis.Nil {
-		return nil, fmt.Errorf("invalid or expired ticket")
+		return map[string]interface{}{
+			"success": false,
+			"status":  "invalid",
+			"message": "Invalid or expired ticket",
+		}, nil
 	} else if err != nil {
 		return nil, err
 	}
@@ -318,16 +322,24 @@ func (s *service) CheckTicket(req CheckTicketRequest) (map[string]interface{}, e
 	// 2. Validate Route
 	tRouteID := int64(ticketData["route_id"].(float64))
 	if tRouteID != req.RouteID {
-		return nil, fmt.Errorf("ticket is not for this route")
+		return map[string]interface{}{
+			"success": false,
+			"status":  "invalid_route",
+			"message": "Ticket is not for this route",
+		}, nil
 	}
 
 	// 3. Check if already checked
 	if checked, ok := ticketData["checked"].(bool); ok && checked {
-		return nil, fmt.Errorf("ticket already used")
+		return map[string]interface{}{
+			"success":   false,
+			"status":    "already_used",
+			"message":   "Ticket already used",
+			"ticket_id": ticketData["ticket_id"],
+		}, nil
 	}
 
 	// 4. Check for Over-travel (Extra Fare)
-	// We need the ticket's end destination order
 	endDest, ok := ticketData["end_destination"].(string)
 	if !ok {
 		return nil, fmt.Errorf("invalid ticket data: missing end_destination")
@@ -347,15 +359,20 @@ func (s *service) CheckTicket(req CheckTicketRequest) (map[string]interface{}, e
 		}
 
 		response = map[string]interface{}{
-			"status":           "pay_extra",
-			"message":          fmt.Sprintf("You have over-traveled. Please pay extra fare: %.2f", extraFare),
+			"success":          false, // Not fully successful until extra fare is handled
+			"status":           "over_travel",
+			"message":          fmt.Sprintf("Over-travel detected. Pay extra: %.2f", extraFare),
 			"extra_fare":       extraFare,
 			"current_stoppage": req.CurrentStoppage.Name,
 			"ticket_end":       endDest,
+			"ticket_id":        ticketData["ticket_id"],
 			"checked":          true,
 		}
 	} else {
 		response = ticketData
+		response["success"] = true
+		response["status"] = "valid"
+		response["message"] = "Ticket Valid"
 		response["checked"] = true
 	}
 
@@ -387,6 +404,60 @@ func (s *service) CheckTicket(req CheckTicketRequest) (map[string]interface{}, e
 	}
 
 	return response, nil
+}
+
+func (s *service) CreateOverTravelTicket(originalTicketID int64, currentStop string, paymentCollected bool) (*domain.Ticket, error) {
+	originalTicket, err := s.repo.Get(originalTicketID)
+	if err != nil {
+		return nil, fmt.Errorf("original ticket not found: %w", err)
+	}
+
+	fare, err := s.repo.CalculateFare(originalTicket.RouteId, originalTicket.EndDestination, currentStop)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate fare: %w", err)
+	}
+	fare = math.Ceil(fare)
+
+	batchID := uuid.New().String()
+	newTicket := domain.Ticket{
+		UserId:           originalTicket.UserId,
+		RouteId:          originalTicket.RouteId,
+		BusName:          originalTicket.BusName,
+		StartDestination: originalTicket.EndDestination,
+		EndDestination:   currentStop,
+		Fare:             fare,
+		PaymentStatus:    "unpaid",
+		PaidStatus:       false,
+		PaymentMethod:    "CASH", // Assumed cash for over-travel
+		BatchID:          batchID,
+		QRCode:           fmt.Sprintf("OT-%d-%s", time.Now().UnixNano(), uuid.New().String()),
+		CreatedAt:        time.Now().Format(time.RFC3339),
+		Checked:          true, // Auto-checked
+	}
+
+	if paymentCollected {
+		newTicket.PaymentStatus = "paid"
+		newTicket.PaidStatus = true
+	}
+
+	createdTicket, err := s.repo.Create(newTicket)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ticket: %w", err)
+	}
+
+	// Create Transaction if paid
+	if paymentCollected {
+		s.CreateTransaction(model.Transaction{
+			UserID:        int(originalTicket.UserId),
+			Amount:        fare,
+			Type:          "purchase",
+			Description:   fmt.Sprintf("Over-Travel Ticket - %s", originalTicket.BusName),
+			PaymentMethod: "CASH",
+			CreatedAt:     time.Now(),
+		})
+	}
+
+	return createdTicket, nil
 }
 
 func (s *service) ValidateTicket(id int64) error {

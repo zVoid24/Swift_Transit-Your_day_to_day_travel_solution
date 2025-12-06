@@ -24,6 +24,8 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
   bool _processing = false;
   String? _statusMessage;
   bool? _isValid;
+  String? _status;
+  Map<String, dynamic>? _ticketData;
 
   @override
   void dispose() {
@@ -47,6 +49,8 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
       _processing = true;
       _statusMessage = 'Checking ticket...';
       _isValid = null;
+      _status = null;
+      _ticketData = null;
     });
     try {
       final apiService = context.read<ApiService>();
@@ -56,6 +60,7 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
         setState(() {
           _statusMessage = 'No active session found';
           _isValid = false;
+          _status = 'ERROR';
         });
         return;
       }
@@ -67,25 +72,88 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
         currentStop: widget.currentStop.name,
         currentStopOrder: widget.currentStop.order,
       );
+
       setState(() {
         _isValid = result.isValid;
+        _status = result.status;
         _statusMessage = result.message;
+        _ticketData = result.payload;
       });
     } catch (e) {
       setState(() {
         _isValid = false;
+        _status = 'ERROR';
         _statusMessage = 'Error: $e';
       });
     } finally {
-      // Auto-reset after delay if valid, or keep error visible longer
-      await Future.delayed(const Duration(seconds: 3));
+      // Don't auto-reset for over-travel, keep it visible
+      if (_status != 'over_travel') {
+        await Future.delayed(const Duration(seconds: 3));
+        if (mounted) {
+          setState(() {
+            _processing = false;
+            _statusMessage = null;
+            _isValid = null;
+            _status = null;
+            _ticketData = null;
+          });
+        }
+      } else {
+        setState(() {
+          _processing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _createOverTravelTicket(bool paymentCollected) async {
+    if (_ticketData == null) return;
+
+    setState(() {
+      _processing = true;
+      _statusMessage = 'Creating ticket...';
+    });
+
+    try {
+      final apiService = context.read<ApiService>();
+      final ticketIdRaw = _ticketData!['ticket']['id'];
+
+      if (ticketIdRaw == null) {
+        throw Exception('Ticket ID not found in response');
+      }
+
+      final ticketId = ticketIdRaw is int
+          ? ticketIdRaw
+          : (ticketIdRaw as num).toInt();
+
+      await apiService.createOverTravelTicket(
+        originalTicketId: ticketId,
+        currentStop: widget.currentStop.name,
+        paymentCollected: paymentCollected,
+      );
+
+      setState(() {
+        _statusMessage = 'Ticket created successfully!';
+        _isValid = true;
+        _status = 'SUCCESS';
+      });
+
+      await Future.delayed(const Duration(seconds: 2));
       if (mounted) {
         setState(() {
           _processing = false;
           _statusMessage = null;
           _isValid = null;
+          _status = null;
+          _ticketData = null;
         });
       }
+    } catch (e) {
+      setState(() {
+        _processing = false;
+        _statusMessage = 'Failed to create ticket: $e';
+        _isValid = false;
+      });
     }
   }
 
@@ -320,6 +388,19 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
                             color: Color(0xFF258BA1),
                           ),
                         )
+                      else if (_status == 'over_travel')
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.orange[50],
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.warning_rounded,
+                            color: Colors.orange,
+                            size: 64,
+                          ),
+                        )
                       else if (_isValid == true)
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -350,17 +431,25 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
                       Text(
                         _isValid == null
                             ? 'Checking Ticket...'
-                            : (_isValid == true
+                            : (_status == 'valid'
                                   ? 'Valid Ticket'
-                                  : 'Invalid Ticket'),
+                                  : (_status == 'already_used'
+                                        ? 'Already Used'
+                                        : (_status == 'invalid_route'
+                                              ? 'Wrong Route'
+                                              : (_status == 'over_travel'
+                                                    ? 'Over-Travel Detected'
+                                                    : 'Invalid Ticket')))),
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: _isValid == null
                               ? Colors.black87
-                              : (_isValid == true
-                                    ? Colors.green[700]
-                                    : Colors.red[700]),
+                              : (_status == 'over_travel'
+                                    ? Colors.orange[700]
+                                    : (_isValid == true
+                                          ? Colors.green[700]
+                                          : Colors.red[700])),
                         ),
                       ),
                       if (_statusMessage != null && _isValid != null) ...[
@@ -374,7 +463,67 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
                           ),
                         ),
                       ],
-                      if (_isValid != null) ...[
+                      if (_status == 'over_travel' && _ticketData != null) ...[
+                        const SizedBox(height: 24),
+                        Text(
+                          'Extra Fare: ৳${(_ticketData!['extra_fare'] as num?)?.toStringAsFixed(0) ?? '0'}',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange[900],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () => _createOverTravelTicket(false),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey[300],
+                                  foregroundColor: Colors.black87,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Not Paid',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () => _createOverTravelTicket(true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Cash Paid',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else if (_isValid != null) ...[
                         const SizedBox(height: 32),
                         SizedBox(
                           width: double.infinity,
@@ -385,6 +534,8 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
                                 _processing = false;
                                 _statusMessage = null;
                                 _isValid = null;
+                                _status = null;
+                                _ticketData = null;
                               });
                             },
                             style: ElevatedButton.styleFrom(

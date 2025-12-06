@@ -14,4 +14,6 @@ type Service interface {
 	FindByEmail(email string) (*domain.User, error)
 	UpdateProfile(id int64, name, email, mobile string) (*domain.User, error)
 	ChangePassword(id int64, currentPassword, newPassword string) error
+	GetWithPassword(id int64) (*domain.User, error)
+	ToggleRFIDStatus(userID int64, active bool) error
 }

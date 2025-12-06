@@ -1,0 +1,2 @@
+-- +migrate Up
+ALTER TABLE users ADD COLUMN rfid VARCHAR(10) UNIQUE;

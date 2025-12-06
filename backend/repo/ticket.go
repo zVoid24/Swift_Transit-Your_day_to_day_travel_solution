@@ -197,3 +197,18 @@ func (r *ticketRepo) GetByQRCode(qrCode string) (*domain.Ticket, error) {
 	}
 	return &ticket, nil
 }
+
+func (r *ticketRepo) GetLatestTicket(userId int64, routeId int64) (*domain.Ticket, error) {
+	var ticket domain.Ticket
+	query := `
+		SELECT * FROM tickets 
+		WHERE user_id = $1 AND route_id = $2 
+		ORDER BY created_at DESC 
+		LIMIT 1
+	`
+	err := r.dbCon.Get(&ticket, query, userId, routeId)
+	if err != nil {
+		return nil, err
+	}
+	return &ticket, nil
+}

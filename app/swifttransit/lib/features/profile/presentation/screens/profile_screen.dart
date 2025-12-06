@@ -149,6 +149,73 @@ class _DemoProfileScreenState extends State<DemoProfileScreen> {
                   ),
                   const SizedBox(height: 32),
                   Text(
+                    'Payment Settings',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      onTap: () {
+                        Navigator.pushNamed(context, AppRoutes.rfidManagement);
+                      },
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.nfc,
+                          color: AppColors.primary,
+                          size: 24,
+                        ),
+                      ),
+                      title: Text(
+                        'RFID Management',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Manage your RFID card status',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
                     'Security',
                     style: GoogleFonts.poppins(
                       fontSize: 18,

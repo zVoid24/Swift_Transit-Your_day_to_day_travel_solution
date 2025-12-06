@@ -84,3 +84,11 @@ func (svc *service) ChangePassword(id int64, currentPassword, newPassword string
 
 	return svc.userRepo.UpdatePasswordByID(id, newPassword)
 }
+
+func (svc *service) GetWithPassword(id int64) (*domain.User, error) {
+	return svc.userRepo.GetWithPassword(id)
+}
+
+func (svc *service) ToggleRFIDStatus(userID int64, active bool) error {
+	return svc.userRepo.ToggleRFIDStatus(userID, active)
+}

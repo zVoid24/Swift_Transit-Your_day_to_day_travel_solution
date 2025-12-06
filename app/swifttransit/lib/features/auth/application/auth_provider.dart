@@ -186,11 +186,7 @@ class AuthProvider extends ChangeNotifier {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $jwt',
       },
-      body: jsonEncode({
-        'name': name,
-        'email': email,
-        'mobile': mobile,
-      }),
+      body: jsonEncode({'name': name, 'email': email, 'mobile': mobile}),
     );
 
     if (response.statusCode == 200) {
@@ -204,7 +200,10 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> changePassword(String currentPassword, String newPassword) async {
+  Future<bool> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
     isChangingPassword = true;
     notifyListeners();
 
@@ -340,6 +339,50 @@ class AuthProvider extends ChangeNotifier {
         confirmPassword.text.length >= 6 &&
         password.text == confirmPassword.text &&
         agreed == true;
+  }
+
+  Future<Map<String, dynamic>?> getRFIDStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jwt = prefs.getString('jwt');
+    if (jwt == null) return null;
+
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConstants.baseUrl}/user/rfid'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $jwt',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<bool> toggleRFIDStatus(bool active) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jwt = prefs.getString('jwt');
+    if (jwt == null) return false;
+
+    try {
+      final response = await http.post(
+        Uri.parse('${AppConstants.baseUrl}/user/rfid/toggle'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $jwt',
+        },
+        body: jsonEncode({'active': active}),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
   }
 
   @override

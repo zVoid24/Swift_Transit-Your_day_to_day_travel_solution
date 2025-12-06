@@ -16,6 +16,8 @@ import '../../features/ticket/presentation/screens/ticket_detail_screen.dart';
 import '../../features/ticket/presentation/screens/ticket_list_screen.dart';
 import '../../features/transaction/presentation/screens/transaction_screen.dart';
 
+import '../../features/profile/presentation/screens/rfid_management_screen.dart';
+
 class AppRoutes {
   static const root = '/';
   static const login = '/login';
@@ -33,6 +35,7 @@ class AppRoutes {
   static const forgotPasswordOtp = '/forgot-password-otp';
   static const resetPassword = '/reset-password';
   static const otpVerification = '/otp-verification';
+  static const rfidManagement = '/rfid-management';
 
   static Map<String, WidgetBuilder> get routes => {
     root: (_) => const SplashScreen(),
@@ -64,5 +67,6 @@ class AppRoutes {
     otpVerification: (context) => OtpVerificationScreen(
       email: ModalRoute.of(context)?.settings.arguments as String? ?? '',
     ),
+    rfidManagement: (_) => const RFIDManagementScreen(),
   };
 }

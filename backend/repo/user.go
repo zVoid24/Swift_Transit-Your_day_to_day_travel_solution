@@ -51,7 +51,7 @@ func (r *userRepo) Info(ctx context.Context) (*domain.User, error) {
 
 	// Always fetch the latest record from DB to avoid stale balance from JWT claims
 	user := &domain.User{}
-	query := `SELECT id, name, mobile, nid, email, is_student, balance FROM users WHERE id = $1`
+	query := `SELECT id, name, mobile, nid, email, is_student, balance, rfid, is_rfid_active FROM users WHERE id = $1`
 	if err := r.dbCon.Get(user, query, userID); err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (r *userRepo) Create(user domain.User) (*domain.User, error) {
 	query := `
 		INSERT INTO users (name, mobile, nid, email, password, is_student, balance)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, name, mobile, nid, email, is_student, balance
+		RETURNING id, name, mobile, nid, email, is_student, balance, rfid, is_rfid_active
 	`
 
 	createdUser := domain.User{}
@@ -95,7 +95,7 @@ func (r *userRepo) Create(user domain.User) (*domain.User, error) {
 // Find user by mobile and verify password (login)
 func (r *userRepo) Find(mobile, password string) (*domain.User, error) {
 	user := domain.User{}
-	query := `SELECT id, name, mobile, nid, email, password, is_student, balance FROM users WHERE mobile=$1`
+	query := `SELECT id, name, mobile, nid, email, password, is_student, balance, rfid, is_rfid_active FROM users WHERE mobile=$1`
 
 	err := r.dbCon.Get(&user, query, mobile)
 	if err != nil {
@@ -171,7 +171,7 @@ func (r *userRepo) UpdatePassword(email, newPassword string) error {
 
 func (r *userRepo) FindByEmail(email string) (*domain.User, error) {
 	user := domain.User{}
-	query := `SELECT id, name, mobile, nid, email, password, is_student, balance FROM users WHERE email=$1`
+	query := `SELECT id, name, mobile, nid, email, password, is_student, balance, rfid, is_rfid_active FROM users WHERE email=$1`
 
 	err := r.dbCon.Get(&user, query, email)
 	if err != nil {
@@ -185,7 +185,7 @@ func (r *userRepo) UpdateProfile(id int64, name, email, mobile string) (*domain.
         UPDATE users
         SET name = $1, email = $2, mobile = $3
         WHERE id = $4
-        RETURNING id, name, mobile, nid, email, is_student, balance
+        RETURNING id, name, mobile, nid, email, is_student, balance, rfid, is_rfid_active
     `
 
 	updated := domain.User{}
@@ -198,7 +198,7 @@ func (r *userRepo) UpdateProfile(id int64, name, email, mobile string) (*domain.
 
 func (r *userRepo) GetWithPassword(id int64) (*domain.User, error) {
 	user := domain.User{}
-	query := `SELECT id, name, mobile, nid, email, password, is_student, balance FROM users WHERE id=$1`
+	query := `SELECT id, name, mobile, nid, email, password, is_student, balance, rfid, is_rfid_active FROM users WHERE id=$1`
 
 	if err := r.dbCon.Get(&user, query, id); err != nil {
 		return nil, err
@@ -214,5 +214,20 @@ func (r *userRepo) UpdatePasswordByID(id int64, newPassword string) error {
 	}
 
 	_, err = r.dbCon.Exec(`UPDATE users SET password = $1 WHERE id = $2`, string(hashedPassword), id)
+	return err
+}
+
+func (r *userRepo) FindByRFID(rfid string) (*domain.User, error) {
+	user := domain.User{}
+	query := `SELECT id, name, mobile, nid, email, password, is_student, balance, rfid, is_rfid_active FROM users WHERE rfid=$1`
+
+	if err := r.dbCon.Get(&user, query, rfid); err != nil {
+		return nil, fmt.Errorf("user not found with rfid: %w", err)
+	}
+	return &user, nil
+}
+
+func (r *userRepo) ToggleRFIDStatus(userID int64, active bool) error {
+	_, err := r.dbCon.Exec("UPDATE users SET is_rfid_active = $1 WHERE id = $2", active, userID)
 	return err
 }

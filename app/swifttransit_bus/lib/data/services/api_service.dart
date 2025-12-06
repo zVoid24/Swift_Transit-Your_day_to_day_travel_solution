@@ -40,11 +40,13 @@ class RouteVariant {
 
 class TicketCheckResult {
   final bool isValid;
+  final String status;
   final String message;
   final Map<String, dynamic> payload;
 
   TicketCheckResult({
     required this.isValid,
+    required this.status,
     required this.message,
     required this.payload,
   });
@@ -136,15 +138,90 @@ class ApiService {
       }),
     );
 
-    if (response.statusCode != 200) {
+    // Allow 200 even for "invalid" logic if backend returns structured error
+    if (response.statusCode != 200 && response.statusCode != 400) {
       throw Exception('Ticket check failed (${response.statusCode})');
     }
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     return TicketCheckResult(
-      isValid: data['status'] == 'valid',
-      message: data['message']?.toString() ?? 'Ticket is ${data['status']}',
+      isValid: data['success'] == true,
+      status: data['status']?.toString() ?? 'UNKNOWN',
+      message: data['message']?.toString() ?? 'Unknown status',
       payload: data,
     );
   }
+
+  Future<RFIDPaymentResult> processRFIDPayment({
+    required String rfid,
+    required int routeId,
+    required String busName,
+    required String startDestination,
+    required String endDestination,
+  }) async {
+    final uri = Uri.parse('$baseUrl/ticket/rfid-payment');
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'rfid': rfid,
+        'route_id': routeId,
+        'bus_name': busName,
+        'start_destination': startDestination,
+        'end_destination': endDestination,
+      }),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 400) {
+      throw Exception('Payment failed (${response.statusCode})');
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return RFIDPaymentResult(
+      success: data['success'] == true,
+      status: data['status']?.toString() ?? 'UNKNOWN',
+      message: data['message']?.toString() ?? 'Unknown error',
+      balance: (data['balance'] as num?)?.toDouble() ?? 0.0,
+      fare: (data['fare'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  Future<bool> createOverTravelTicket({
+    required int originalTicketId,
+    required String currentStop,
+    required bool paymentCollected,
+  }) async {
+    final uri = Uri.parse('$baseUrl/ticket/over-travel');
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'original_ticket_id': originalTicketId,
+        'current_stop': currentStop,
+        'payment_collected': paymentCollected,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to create ticket (${response.statusCode})');
+    }
+
+    return true;
+  }
+}
+
+class RFIDPaymentResult {
+  final bool success;
+  final String status;
+  final String message;
+  final double balance;
+  final double fare;
+
+  RFIDPaymentResult({
+    required this.success,
+    required this.status,
+    required this.message,
+    required this.balance,
+    required this.fare,
+  });
 }

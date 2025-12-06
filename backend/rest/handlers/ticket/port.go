@@ -16,4 +16,6 @@ type Service interface {
 	ValidateTicket(id int64) error
 	GetPaymentStatus(ticketID int64) (string, error)
 	CancelTicket(userID int64, ticketID int64) (float64, error)
+	ProcessRFIDPayment(req ticket.RFIDPaymentRequest) (*ticket.RFIDPaymentResponse, error)
+	CreateOverTravelTicket(originalTicketID int64, currentStop string, paymentCollected bool) (*domain.Ticket, error)
 }

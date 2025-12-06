@@ -12,4 +12,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /ticket/status", h.mngr.With(http.HandlerFunc(h.GetTicketStatus)))
 	mux.Handle("GET /ticket", h.mngr.With(http.HandlerFunc(h.GetTickets), h.middlewareHandler.Authenticate))
 	mux.Handle("POST /ticket/cancel/{id}", h.mngr.With(http.HandlerFunc(h.CancelTicket), h.middlewareHandler.Authenticate))
+	mux.Handle("POST /ticket/rfid-payment", http.HandlerFunc(h.ProcessRFIDPayment)) // No auth for now, or bus auth?
+	mux.Handle("POST /ticket/over-travel", http.HandlerFunc(h.CreateOverTravelTicket))
 }

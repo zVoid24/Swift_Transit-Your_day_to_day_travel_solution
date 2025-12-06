@@ -14,6 +14,7 @@ import 'package:swifttransit_bus/features/auth/application/session_provider.dart
 import 'package:swifttransit_bus/features/auth/domain/entities/session_data.dart';
 import 'package:swifttransit_bus/features/routes/domain/models/route_models.dart';
 import 'package:swifttransit_bus/features/ticket/presentation/screens/ticket_scan_screen.dart';
+import 'package:swifttransit_bus/features/ticket/presentation/screens/rfid_payment_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -252,20 +253,35 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      floatingActionButton: SizedBox(
-        height: 70,
-        width: 70,
-        child: FloatingActionButton(
-          onPressed: _openScanner,
-          backgroundColor: AppColors.primary,
-          elevation: 4,
-          child: const Icon(
-            Icons.qr_code_scanner,
-            size: 36,
-            color: Colors.white,
-          ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(width: 32), // Offset for centering
+            FloatingActionButton.extended(
+              heroTag: 'scan_qr',
+              onPressed: _openScanner,
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('Scan QR'),
+              backgroundColor: AppColors.primary,
+            ),
+            const SizedBox(width: 16),
+            FloatingActionButton.extended(
+              heroTag: 'rfid_pay',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RFIDPaymentScreen()),
+                );
+              },
+              icon: const Icon(Icons.nfc),
+              label: const Text('RFID Pay'),
+              backgroundColor: Colors.orange,
+            ),
+          ],
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       body: Column(
         children: [
           Container(

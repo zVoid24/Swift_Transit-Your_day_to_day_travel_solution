@@ -153,7 +153,7 @@ class _LiveBusLocationView extends StatelessWidget {
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -164,7 +164,7 @@ class _LiveBusLocationView extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.black, width: 2),
+                    border: Border.all(color: AppColors.primary, width: 2),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.2),
@@ -347,7 +347,7 @@ class _LiveBusLocationView extends StatelessWidget {
                       Polyline(
                         points: provider.routePoints,
                         strokeWidth: 4.0,
-                        color: Colors.black,
+                        color: AppColors.primary,
                       ),
                     ],
                   ),
