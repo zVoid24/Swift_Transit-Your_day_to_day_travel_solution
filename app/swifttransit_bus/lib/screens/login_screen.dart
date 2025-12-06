@@ -32,6 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _error;
   bool _obscurePassword = true;
+  String _selectedVariant = 'up';
 
   @override
   void dispose() {
@@ -51,6 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final login = await widget.apiService.login(
         busIdentifier: _busIdController.text.trim(),
         password: _passwordController.text,
+        variant: _selectedVariant,
       );
 
       final route = await widget.apiService.fetchRoute(
@@ -62,6 +64,8 @@ class _LoginScreenState extends State<LoginScreen> {
         token: login.token,
         routeId: login.routeId,
         busId: login.busId,
+        busCredentialId: login.busCredentialId,
+        variant: login.variant,
       );
       await widget.storage.saveRoute(route);
 
@@ -74,6 +78,8 @@ class _LoginScreenState extends State<LoginScreen> {
               token: login.token,
               routeId: login.routeId,
               busId: login.busId,
+              busCredentialId: login.busCredentialId,
+              variant: login.variant,
             ),
             route: route,
             storage: widget.storage,
@@ -196,6 +202,48 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) =>
                         value == null || value.isEmpty ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Direction',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: RadioListTile<String>(
+                          title: const Text('Up (A → B → C)'),
+                          value: 'up',
+                          groupValue: _selectedVariant,
+                          onChanged: _isLoading
+                              ? null
+                              : (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      _selectedVariant = value;
+                                    });
+                                  }
+                                },
+                        ),
+                      ),
+                      Expanded(
+                        child: RadioListTile<String>(
+                          title: const Text('Down (C → B → A)'),
+                          value: 'down',
+                          groupValue: _selectedVariant,
+                          onChanged: _isLoading
+                              ? null
+                              : (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      _selectedVariant = value;
+                                    });
+                                  }
+                                },
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   if (_error != null)

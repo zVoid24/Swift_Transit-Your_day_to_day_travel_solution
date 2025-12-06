@@ -14,10 +14,17 @@ func (h *Handler) CheckTicket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Basic validation
-	if req.QRCode == "" || req.RouteID == 0 || req.CurrentStoppage.Name == "" {
+	if req.QRCode == "" || req.CurrentStoppage.Name == "" {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
+
+	busData, err := h.busFromContext(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	req.RouteID = busData.RouteId
 
 	result, err := h.svc.CheckTicket(req)
 	if err != nil {

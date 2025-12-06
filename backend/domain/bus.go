@@ -12,5 +12,6 @@ type BusCredential struct {
 	Id                 int64  `json:"id" db:"id"`
 	RegistrationNumber string `json:"registration_number" db:"registration_number"`
 	Password           string `json:"password" db:"password"`
-	RouteId            int64  `json:"route_id" db:"route_id"`
+	RouteIdUp          int64  `json:"route_id_up" db:"route_id_up"`
+	RouteIdDown        int64  `json:"route_id_down" db:"route_id_down"`
 }

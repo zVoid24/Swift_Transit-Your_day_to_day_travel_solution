@@ -9,7 +9,8 @@ import (
 type RegisterRequest struct {
 	RegistrationNumber string `json:"registration_number"`
 	Password           string `json:"password"`
-	RouteId            int64  `json:"route_id"`
+	RouteIdUp          int64  `json:"route_id_up"`
+	RouteIdDown        int64  `json:"route_id_down"`
 }
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
@@ -24,12 +25,12 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.RegistrationNumber == "" || req.Password == "" || req.RouteId == 0 {
-		h.utilHandler.SendError(w, "Registration Number, Password and Route ID are required", http.StatusBadRequest)
+	if req.RegistrationNumber == "" || req.Password == "" || req.RouteIdUp == 0 || req.RouteIdDown == 0 {
+		h.utilHandler.SendError(w, "Registration Number, Password and both Route IDs are required", http.StatusBadRequest)
 		return
 	}
 
-	busCred, err := h.svc.Register(req.RegistrationNumber, req.Password, req.RouteId)
+	busCred, err := h.svc.Register(req.RegistrationNumber, req.Password, req.RouteIdUp, req.RouteIdDown)
 	if err != nil {
 		h.utilHandler.SendError(w, fmt.Sprintf("Failed to register bus: %s", err.Error()), http.StatusInternalServerError)
 		return
@@ -38,7 +39,12 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	busData := BusAuthData{
 		Id:                 busCred.Id,
 		RegistrationNumber: busCred.RegistrationNumber,
-		RouteId:            busCred.RouteId,
+		RouteId:            busCred.RouteIdUp,
+		Variant:            "up",
+		Variants: []RouteVariant{
+			{Variant: "up", RouteId: busCred.RouteIdUp},
+			{Variant: "down", RouteId: busCred.RouteIdDown},
+		},
 	}
 
 	token, err := h.utilHandler.CreateJWT(busData)

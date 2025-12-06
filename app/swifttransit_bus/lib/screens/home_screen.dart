@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
         widget.socketService.sendPosition(
           position: position,
           routeId: widget.session.routeId,
-          busId: widget.session.busId,
+          busCredentialId: widget.session.busCredentialId,
         );
       },
       onError: (err) {
@@ -181,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             Text(
-              'Route: ${widget.route.name}',
+              'Route: ${widget.route.name} (${widget.session.variant.toUpperCase()})',
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.normal,
