@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:swifttransit/app/routes/app_routes.dart';
 import 'package:swifttransit/core/colors.dart';
 import 'package:swifttransit/features/auth/application/auth_provider.dart';
+import 'package:swifttransit/features/dashboard/application/dashboard_provider.dart';
 import 'package:swifttransit/shared/widgets/app_snackbar.dart';
 
 import 'forgot_password_screen.dart';
@@ -178,6 +179,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
                             if (success) {
                               if (!context.mounted) return;
+
+                              // Pre-populate dashboard provider with user data
+                              if (auth.user != null) {
+                                Provider.of<DashboardProvider>(
+                                  context,
+                                  listen: false,
+                                ).setUserData(auth.user!);
+                              }
+
                               AppSnackBar.success(context, "Login successful");
                               Navigator.pushReplacementNamed(
                                 context,

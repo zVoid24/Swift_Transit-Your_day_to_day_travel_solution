@@ -17,7 +17,7 @@ class TicketScanScreen extends StatefulWidget {
 
 class _TicketScanScreenState extends State<TicketScanScreen> {
   final MobileScannerController _controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
+    detectionSpeed: DetectionSpeed.normal, // Allow rescanning same code
     formats: [BarcodeFormat.qrCode],
     returnImage: false,
   );
@@ -26,6 +26,7 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
   bool? _isValid;
   String? _status;
   Map<String, dynamic>? _ticketData;
+  DateTime? _lastScanTime;
 
   @override
   void dispose() {
@@ -35,9 +36,20 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
 
   void _onDetect(BarcodeCapture capture) {
     if (_processing) return;
+    // Prevent rapid rescanning while result is shown
+    if (_statusMessage != null || _isValid != null) return;
+
+    // Throttle scans (e.g., 2 seconds)
+    if (_lastScanTime != null &&
+        DateTime.now().difference(_lastScanTime!) <
+            const Duration(seconds: 2)) {
+      return;
+    }
+
     final List<Barcode> barcodes = capture.barcodes;
     for (final barcode in barcodes) {
       if (barcode.rawValue != null) {
+        _lastScanTime = DateTime.now();
         _handleScan(barcode.rawValue!);
         break;
       }
@@ -78,6 +90,12 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
         _status = result.status;
         _statusMessage = result.message;
         _ticketData = result.payload;
+
+        // Treat already_used as a "valid" scan in terms of not being an error,
+        // but keep the specific status for UI differentiation
+        if (_status == 'already_used') {
+          _isValid = true;
+        }
       });
     } catch (e) {
       setState(() {
@@ -414,6 +432,19 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
                             size: 64,
                           ),
                         )
+                      else if (_status == 'already_used')
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.info_outline_rounded,
+                            color: Colors.blue,
+                            size: 64,
+                          ),
+                        )
                       else
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -447,9 +478,11 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
                               ? Colors.black87
                               : (_status == 'over_travel'
                                     ? Colors.orange[700]
-                                    : (_isValid == true
-                                          ? Colors.green[700]
-                                          : Colors.red[700])),
+                                    : (_status == 'already_used'
+                                          ? Colors.blue[700]
+                                          : (_isValid == true
+                                                ? Colors.green[700]
+                                                : Colors.red[700]))),
                         ),
                       ),
                       if (_statusMessage != null && _isValid != null) ...[

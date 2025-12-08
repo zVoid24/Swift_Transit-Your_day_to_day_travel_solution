@@ -15,25 +15,23 @@ func (h *Handler) CheckTicket(w http.ResponseWriter, r *http.Request) {
 
 	// Basic validation
 	if req.QRCode == "" || req.CurrentStoppage.Name == "" {
-		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		h.utilHandler.SendError(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
 
 	busData, err := h.BusFromContext(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		h.utilHandler.SendError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	req.RouteID = busData.RouteId
 
 	result, err := h.svc.CheckTicket(req)
 	if err != nil {
-		// Differentiate errors if needed (e.g., 404 for not found, 409 for already used)
-		// For now, 400 is generally safe for "invalid ticket"
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		// Return JSON error even for bad requests so frontend can parse "message"
+		h.utilHandler.SendError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	h.utilHandler.SendData(w, result, http.StatusOK)
 }

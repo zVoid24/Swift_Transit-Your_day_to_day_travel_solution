@@ -140,6 +140,19 @@ class ApiService {
 
     // Allow 200 even for "invalid" logic if backend returns structured error
     if (response.statusCode != 200 && response.statusCode != 400) {
+      // Try to decode error message if possible
+      try {
+        final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+        if (errorData.containsKey('message')) {
+          return TicketCheckResult(
+            isValid: false,
+            status: 'ERROR',
+            message: errorData['message']?.toString() ?? 'Unknown error',
+            payload: errorData,
+          );
+        }
+      } catch (_) {}
+
       throw Exception('Ticket check failed (${response.statusCode})');
     }
 

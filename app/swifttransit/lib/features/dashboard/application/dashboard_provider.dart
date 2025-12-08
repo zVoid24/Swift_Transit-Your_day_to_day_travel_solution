@@ -230,19 +230,7 @@ class DashboardProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        // Keep previous behavior: update name & balance
-        if (data['name'] != null) userName = data['name'];
-        if (data['balance'] != null) {
-          balance = (data['balance'] as num).toDouble();
-        }
-        // If API returns points, use it
-        if (data['balance'] != null) {
-          try {
-            swiftPoints = (data['balance'] as num).toInt();
-          } catch (_) {}
-        }
-
-        notifyListeners();
+        _updateLocalUserData(data);
       } else {
         // non-200: do not overwrite fields, but log optionally
         debugPrint(
@@ -252,6 +240,24 @@ class DashboardProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint("Error fetching user info: $e");
     }
+  }
+
+  void setUserData(Map<String, dynamic> data) {
+    _updateLocalUserData(data);
+  }
+
+  void _updateLocalUserData(dynamic data) {
+    if (data['name'] != null) userName = data['name'];
+    if (data['balance'] != null) {
+      balance = (data['balance'] as num).toDouble();
+    }
+    // If API returns points, use it
+    if (data['balance'] != null) {
+      try {
+        swiftPoints = (data['balance'] as num).toInt();
+      } catch (_) {}
+    }
+    notifyListeners();
   }
 
   /// Refresh balance helper - UI calls this to refresh balance.
