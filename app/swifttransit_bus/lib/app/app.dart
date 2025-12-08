@@ -26,6 +26,7 @@ class _SwiftTransitBusAppState extends State<SwiftTransitBusApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'SwiftTransit Bus',
       theme: ThemeData(
         useMaterial3: true,

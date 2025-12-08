@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 
 import 'package:swifttransit/app/routes/app_routes.dart';
@@ -45,14 +44,13 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Lottie.asset(
-              //   'assets/login.json',
-              //   width: 300,
-              //   height: 240,
-              //   repeat: true,
-              //   fit: BoxFit.contain,
-              // ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 40),
+              CircleAvatar(
+                radius: 50,
+                backgroundImage: const AssetImage('assets/stlogo.png'),
+                backgroundColor: Colors.white,
+              ),
+              const SizedBox(height: 40),
 
               Text(
                 "Welcome Back!",
