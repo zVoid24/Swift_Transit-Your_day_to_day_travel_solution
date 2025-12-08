@@ -13,6 +13,7 @@ type BusOwnerRepo interface {
 	CountBusesByRoute(ownerId int64, routeId int64) (int, error)
 	GetBusesByOwner(ownerId int64) ([]domain.BusCredential, error)
 	GetAnalytics(ownerId int64) (*domain.BusOwnerAnalytics, error)
+	GetPerBusAnalytics(ownerId int64) ([]domain.BusAnalytics, error)
 }
 
 type busOwnerRepo struct {
@@ -110,4 +111,35 @@ func (r *busOwnerRepo) GetAnalytics(ownerId int64) (*domain.BusOwnerAnalytics, e
 	}
 
 	return &analytics, nil
+}
+
+func (r *busOwnerRepo) GetPerBusAnalytics(ownerId int64) ([]domain.BusAnalytics, error) {
+	query := `
+		SELECT 
+			b.registration_number,
+			COUNT(t.id) as tickets,
+			COALESCE(SUM(t.fare), 0) as revenue
+		FROM bus_credentials b
+		LEFT JOIN tickets t ON t.registration_number = b.registration_number AND t.payment_status = 'paid'
+		WHERE b.owner_id = $1
+		GROUP BY b.registration_number
+		ORDER BY revenue DESC
+	`
+
+	rows, err := r.db.Query(query, ownerId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get per-bus analytics: %w", err)
+	}
+	defer rows.Close()
+
+	var analytics []domain.BusAnalytics
+	for rows.Next() {
+		var busAnalytics domain.BusAnalytics
+		if err := rows.Scan(&busAnalytics.RegistrationNumber, &busAnalytics.Tickets, &busAnalytics.Revenue); err != nil {
+			return nil, err
+		}
+		analytics = append(analytics, busAnalytics)
+	}
+
+	return analytics, nil
 }

@@ -15,6 +15,7 @@ type Service interface {
 	RegisterBus(ownerId int64, regNo, password string, routeIdUp, routeIdDown int64) error
 	GetBuses(ownerId int64) ([]domain.BusCredential, error)
 	GetAnalytics(ownerId int64) (map[string]interface{}, error)
+	GetPerBusAnalytics(ownerId int64) ([]domain.BusAnalytics, error)
 	GetRoutes() ([]domain.Route, error)
 }
 
@@ -151,4 +152,8 @@ func (s *service) GetAnalytics(ownerId int64) (map[string]interface{}, error) {
 
 func (s *service) GetRoutes() ([]domain.Route, error) {
 	return s.routeRepo.FindAll()
+}
+
+func (s *service) GetPerBusAnalytics(ownerId int64) ([]domain.BusAnalytics, error) {
+	return s.repo.GetPerBusAnalytics(ownerId)
 }

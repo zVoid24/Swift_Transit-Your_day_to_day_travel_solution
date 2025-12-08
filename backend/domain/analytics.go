@@ -12,3 +12,9 @@ type PeriodAnalytics struct {
 	Revenue float64 `json:"revenue"`
 	Tickets int     `json:"tickets"`
 }
+
+type BusAnalytics struct {
+	RegistrationNumber string  `json:"registration_number"`
+	Tickets            int     `json:"tickets"`
+	Revenue            float64 `json:"revenue"`
+}
