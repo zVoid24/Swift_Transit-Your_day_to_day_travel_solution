@@ -49,24 +49,8 @@ Swift Transit is organized around four primary actors:
 
 The backend follows a clean layered architecture with clear separation between the HTTP transport layer, domain services, and data access repositories.
 
-```
-HTTP Request
-     |
-     v
-Middleware (logging, CORS, JWT authentication)
-     |
-     v
-REST Handler (per actor: user, bus, bus_owner, admin, route, ticket, transaction)
-     |
-     v
-Domain Service (business rules: fare calculation, ticket limits, validation)
-     |
-     v
-Repository (data access via sqlx and PostgreSQL)
-     |
-     v
-Infrastructure (PostgreSQL/PostGIS, Redis, RabbitMQ, SSLCommerz payment gateway)
-```
+
+![System Architecture](documentation/system_design/a5a6d565-8491-4d2d-984b-a11d64b5c0f4.jpg)
 
 **Asynchronous Ticket Processing** — Ticket purchase requests are published to a RabbitMQ queue. Background workers consume these messages to generate QR codes, produce PDF tickets, initiate payment flows, and mark tickets as paid after payment confirmation. This decouples the HTTP request from the long-running ticket creation pipeline.
 
@@ -140,6 +124,15 @@ Infrastructure (PostgreSQL/PostGIS, Redis, RabbitMQ, SSLCommerz payment gateway)
 - Over-travel detection with automatic fare adjustment
 - User profile management
 
+#### Passenger App Interface
+| Route Discovery | Real-time Tracking | Ticket Purchase |
+| :---: | :---: | :---: |
+| ![Route Search](documentation/screenshots/0ed00432-c031-4617-8e8c-4b5f1915a4df.jpg) | ![Live Tracking](documentation/screenshots/92285b02-0de6-4926-b451-bd70ce31e5de.jpg) | ![Ticket Purchase](documentation/screenshots/016bc408-cd3f-4889-b775-f285c4ec8f25.jpg) |
+
+| RFID Management | Transactions | SSLCommerz Payment |
+| :---: | :---: | :---: |
+| ![RFID Management](documentation/screenshots/3d816daf-8d62-40d8-b20d-9bc65c8ac702.jpg) | ![Transactions](documentation/screenshots/db519416-6538-493d-8976-ee34ac0c319f.jpg) | ![SSLCommerz](documentation/screenshots/sslcommerz_passenger_side.jpg) |
+
 ### Bus Driver Features
 
 - Secure device authentication and registration
@@ -147,6 +140,11 @@ Infrastructure (PostgreSQL/PostGIS, Redis, RabbitMQ, SSLCommerz payment gateway)
 - QR code ticket scanning and validation at boarding
 - Route assignment with bidirectional route variant support (up/down)
 - Over-travel detection and passenger charge processing
+
+#### Bus Driver App Interface
+| Driver Dashboard | QR Validation | RFID Scan |
+| :---: | :---: | :---: |
+| ![Driver Dashboard](documentation/screenshots/dashboard_bus_side.jpg) | ![QR Validation](documentation/screenshots/qr_scan_bus_side.jpg) | ![RFID Scan](documentation/screenshots/rfid_scan_bus_side.jpg) |
 
 ### Bus Owner / Fleet Operator Features
 
@@ -156,6 +154,9 @@ Infrastructure (PostgreSQL/PostGIS, Redis, RabbitMQ, SSLCommerz payment gateway)
 - Revenue analytics: ticket sales reports, per-route earnings, historical revenue trends
 - Payment completion metrics and refund/cancellation tracking
 - Fleet utilization reporting
+
+#### Fleet & Revenue Analytics Dashboard
+![Fleet Dashboard](documentation/screenshots/a9345bd5-438b-4104-b267-83699d745119.jpg)
 
 ### System Administrator Features
 
