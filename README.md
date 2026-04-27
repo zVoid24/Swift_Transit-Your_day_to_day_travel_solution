@@ -50,7 +50,7 @@ Swift Transit is organized around four primary actors:
 The backend follows a clean layered architecture with clear separation between the HTTP transport layer, domain services, and data access repositories.
 
 
-![System Architecture](documentation/system_design/a5a6d565-8491-4d2d-984b-a11d64b5c0f4.jpg)
+![System Architecture](documentation/system_design/diagram.png)
 
 **Asynchronous Ticket Processing** — Ticket purchase requests are published to a RabbitMQ queue. Background workers consume these messages to generate QR codes, produce PDF tickets, initiate payment flows, and mark tickets as paid after payment confirmation. This decouples the HTTP request from the long-running ticket creation pipeline.
 
